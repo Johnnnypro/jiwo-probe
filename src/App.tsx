@@ -542,6 +542,13 @@ function ProbeLicenseNameplate({ name, displayName }: { name?: string; displayNa
   return <span className="probe-license-nameplate"><span className="probe-license-stars" aria-hidden="true">✦ ✦</span><strong>{label}</strong><i aria-hidden="true" /></span>
 }
 
+// 主控端仅支持单个许可证，这里补充展示其它已获得的许可证铭牌（按 name 去重合并）。
+const EXTRA_LICENSE_BADGES = [
+  { name: '💍「誓约」· 白誓之印', display_name: '🎉 妙妙屋X上线纪念' },
+  { name: '👑 幸运EX', display_name: '🌠 天选之子' },
+  { name: '👑 听海', display_name: '🌊 潮起无声' },
+]
+
 export function App() {
   const { data, error } = useProbe()
   const [view, setView] = useState<'card' | 'list'>(() => (localStorage.getItem('probe-view') as 'card' | 'list') || 'card')
@@ -735,11 +742,16 @@ export function App() {
           MMWX Group
         </a>
       </footer>
-      {data.license_badge && (
+      {(data.license_badge || EXTRA_LICENSE_BADGES.length > 0) && (
         <div className="probe-license-footer">
-          {(Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]).map((badge, index) => (
-            <ProbeLicenseNameplate key={index} name={badge.name} displayName={badge.display_name} />
-          ))}
+          {[
+            ...(data.license_badge ? (Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]) : []),
+            ...EXTRA_LICENSE_BADGES,
+          ]
+            .filter((badge, index, all) => all.findIndex((item) => (item.name || item.display_name) === (badge.name || badge.display_name)) === index)
+            .map((badge, index) => (
+              <ProbeLicenseNameplate key={index} name={badge.name} displayName={badge.display_name} />
+            ))}
         </div>
       )}
     </div>
