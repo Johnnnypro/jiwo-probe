@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowUp, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, PieChart, Server, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer } from './types'
-import { useProbe } from './use-probe'
+import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
+import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
 import { Twemoji } from './Twemoji'
 import commonRouteAnimation from './assets/return-route/common.json'
 import premiumRouteAnimation from './assets/return-route/premium.json'
@@ -548,6 +548,17 @@ export function App() {
   const [filter, setFilter] = useState<'all' | 'online' | 'offline' | 'expiring' | 'expired' | 'renewal'>('all')
   const [region, setRegion] = useState('all')
   const [globeOpen, setGlobeOpen] = useState(false)
+  const [theme, setTheme] = useState<ThemeName | null>(() => getThemeOverride())
+  const [darkMode, setDarkMode] = useState<string | null>(() => getDarkOverride())
+  const isDark = darkMode === 'dark' || (darkMode === null && document.documentElement.classList.contains('dark'))
+  const toggleDark = () => {
+    const next = isDark ? 'light' : 'dark'
+    setDarkOverride(next)
+    setDarkMode(next)
+  }
+  const toggleTheme = () => {
+    setTheme(cycleTheme())
+  }
   const setMode = (next: 'card' | 'list') => {
     setView(next)
     localStorage.setItem('probe-view', next)
@@ -596,6 +607,12 @@ export function App() {
           </button>
           <button aria-label="列表视图" title="列表视图" className={view === 'list' ? 'active' : ''} onClick={() => setMode('list')}>
             <List size={18} />
+          </button>
+          <button aria-label="切换暗色模式" title={isDark ? '切换浅色模式' : '切换暗色模式'} onClick={toggleDark}>
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button aria-label="切换主题" title={`主题: ${theme || '跟随主控'}`} onClick={toggleTheme}>
+            <Palette size={18} />
           </button>
         </nav>
       </header>

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { ProbeAppearance, ProbePayload, ThemeName } from './types'
 
 const APPEARANCE_CACHE = 'mmwx-probe-appearance'
+const DARK_OVERRIDE = 'mmwx-probe-dark-override'
+const THEME_OVERRIDE = 'mmwx-probe-theme-override'
 
 function normalizeTheme(value?: string): ThemeName {
   return value === 'anime' || value === 'flat' ? value : 'pixel'
@@ -16,15 +18,62 @@ export function applyAppearance(input?: ProbeAppearance) {
     }
   })()
   const appearance = input || cached || { theme: 'pixel', color_mode: 'light' }
-  const theme = normalizeTheme(appearance.theme)
+  const themeOverride = localStorage.getItem(THEME_OVERRIDE) as ThemeName | null
+  const theme = themeOverride || normalizeTheme(appearance.theme)
   const root = document.documentElement
   root.classList.remove('theme-pixel', 'theme-flat', 'theme-anime', 'dark')
   root.classList.add(`theme-${theme}`)
-  const dark = appearance.color_mode === 'dark' ||
-    (appearance.color_mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+  const darkOverride = localStorage.getItem(DARK_OVERRIDE)
+  let dark: boolean
+  if (darkOverride === 'dark') {
+    dark = true
+  } else if (darkOverride === 'light') {
+    dark = false
+  } else {
+    dark = appearance.color_mode === 'dark' ||
+      (appearance.color_mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+  }
   if (dark) root.classList.add('dark')
   root.dataset.themeReady = 'true'
   if (input) localStorage.setItem(APPEARANCE_CACHE, JSON.stringify(input))
+}
+
+export function getDarkOverride(): string | null {
+  return localStorage.getItem(DARK_OVERRIDE)
+}
+
+export function setDarkOverride(mode: 'dark' | 'light' | null) {
+  if (mode) {
+    localStorage.setItem(DARK_OVERRIDE, mode)
+  } else {
+    localStorage.removeItem(DARK_OVERRIDE)
+  }
+  applyAppearance()
+}
+
+const THEME_CYCLE: ThemeName[] = ['pixel', 'flat', 'anime']
+
+export function getThemeOverride(): ThemeName | null {
+  return localStorage.getItem(THEME_OVERRIDE) as ThemeName | null
+}
+
+export function cycleTheme(): ThemeName | null {
+  const current = getThemeOverride()
+  if (!current) {
+    localStorage.setItem(THEME_OVERRIDE, 'pixel')
+    applyAppearance()
+    return 'pixel'
+  }
+  const idx = THEME_CYCLE.indexOf(current)
+  if (idx < 0 || idx >= THEME_CYCLE.length - 1) {
+    localStorage.removeItem(THEME_OVERRIDE)
+    applyAppearance()
+    return null
+  }
+  const next = THEME_CYCLE[idx + 1]
+  localStorage.setItem(THEME_OVERRIDE, next)
+  applyAppearance()
+  return next
 }
 
 export function useProbe(): { data?: ProbePayload; error?: string } {
