@@ -64,6 +64,9 @@ export interface ProbePayload {
   license_badge?: {
     name?: string
     display_name?: string
-  }
+  } | Array<{
+    name?: string
+    display_name?: string
+  }>
   servers?: ProbeServer[]
 }

@@ -737,7 +737,9 @@ export function App() {
       </footer>
       {data.license_badge && (
         <div className="probe-license-footer">
-          <ProbeLicenseNameplate name={data.license_badge.name} displayName={data.license_badge.display_name} />
+          {(Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]).map((badge, index) => (
+            <ProbeLicenseNameplate key={index} name={badge.name} displayName={badge.display_name} />
+          ))}
         </div>
       )}
     </div>
