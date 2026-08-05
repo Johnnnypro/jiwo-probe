@@ -588,8 +588,9 @@ button {
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
 }
 .route-badge small {
-  opacity: 0.72;
-  font-size: 9px;
+  opacity: 0.85;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 1.15;
 }
 .route-badge strong {
@@ -1664,7 +1665,8 @@ footer a:hover {
   }
   .route-badge small {
     flex: none;
-    font-size: 8px;
+    font-size: 10px;
+    font-weight: 600;
     line-height: 1.1;
   }
   .route-badge strong {
