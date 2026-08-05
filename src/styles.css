@@ -1995,3 +1995,178 @@ footer a:hover {
   color: var(--foreground);
   font-weight: 600;
 }
+
+/* ===== 液态玻璃主题（Liquid Glass）===== */
+:root.theme-glass {
+  --primary: #6366f1;
+  --radius: 16px;
+  --page-bg: #eef1ff;
+  --shadow: 0 10px 34px rgba(79, 70, 229, 0.14);
+  --surface: rgba(255, 255, 255, 0.42);
+  --border: rgba(255, 255, 255, 0.72);
+  --muted: #6b7280;
+  --accent: #6366f1;
+}
+:root.theme-glass .app-shell {
+  background:
+    radial-gradient(1100px 650px at 12% -8%, rgba(129, 140, 248, 0.35), transparent 62%),
+    radial-gradient(900px 580px at 88% 6%, rgba(34, 211, 238, 0.28), transparent 60%),
+    radial-gradient(1000px 700px at 55% 108%, rgba(232, 121, 249, 0.22), transparent 62%),
+    linear-gradient(135deg, #eef1ff 0%, #f6f3ff 50%, #edf7ff 100%);
+  background-attachment: fixed;
+}
+:root.theme-glass .topbar {
+  background: rgba(255, 255, 255, 0.32);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+}
+:root.theme-glass .summary-card,
+:root.theme-glass .probe-toolbar,
+:root.theme-glass .server-card,
+:root.theme-glass .globe-card,
+:root.theme-glass .leaderboard-card,
+:root.theme-glass .modal,
+:root.theme-glass .detail-cols > div,
+:root.theme-glass .detail-panel {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 10px 34px rgba(79, 70, 229, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+:root.theme-glass .server-card:hover {
+  border-color: rgba(99, 102, 241, 0.65);
+  box-shadow:
+    0 14px 40px rgba(79, 70, 229, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+:root.theme-glass .node-stats button,
+:root.theme-glass .filters button,
+:root.theme-glass .region-filter,
+:root.theme-glass .server-search,
+:root.theme-glass .leaderboard-tabs button,
+:root.theme-glass .ranges button {
+  background: rgba(255, 255, 255, 0.34);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+:root.theme-glass .filters button.active {
+  background: color-mix(in srgb, var(--primary) 82%, #fff);
+  color: #fff;
+  border-color: transparent;
+}
+:root.theme-glass .modal-backdrop {
+  background: rgba(99, 102, 241, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+:root.theme-glass .server-detail-backdrop {
+  background: rgba(99, 102, 241, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+:root.theme-glass .server-detail {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 24px 60px rgba(79, 70, 229, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+:root.theme-glass .server-detail-header {
+  background: rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+}
+:root.theme-glass .server-table {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius);
+  box-shadow:
+    0 10px 34px rgba(79, 70, 229, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+:root.theme-glass .server-table tbody tr {
+  background: transparent;
+}
+:root.theme-glass .server-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.22);
+}
+:root.theme-glass .table-row-link:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+:root.dark.theme-glass {
+  --page-bg: #0d1124;
+  --surface: rgba(30, 35, 66, 0.45);
+  --border: rgba(148, 163, 184, 0.28);
+  --muted: #a1a8c3;
+  --shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+  --accent: #818cf8;
+  color: #e5e7eb;
+}
+:root.dark.theme-glass .app-shell {
+  background:
+    radial-gradient(1100px 650px at 12% -8%, rgba(79, 70, 229, 0.3), transparent 62%),
+    radial-gradient(900px 580px at 88% 6%, rgba(14, 116, 144, 0.28), transparent 60%),
+    radial-gradient(1000px 700px at 55% 108%, rgba(134, 25, 143, 0.22), transparent 62%),
+    linear-gradient(135deg, #0d1124 0%, #141230 50%, #0c1b2e 100%);
+  background-attachment: fixed;
+}
+:root.dark.theme-glass .summary-card,
+:root.dark.theme-glass .probe-toolbar,
+:root.dark.theme-glass .server-card,
+:root.dark.theme-glass .globe-card,
+:root.dark.theme-glass .leaderboard-card,
+:root.dark.theme-glass .modal,
+:root.dark.theme-glass .detail-cols > div,
+:root.dark.theme-glass .detail-panel,
+:root.dark.theme-glass .server-table {
+  background: rgba(30, 35, 66, 0.45);
+  box-shadow:
+    0 10px 34px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+:root.dark.theme-glass .server-detail {
+  background: rgba(30, 35, 66, 0.45);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+:root.dark.theme-glass .server-detail-header {
+  background: rgba(30, 35, 66, 0.5);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+:root.dark.theme-glass .server-detail-backdrop {
+  background: rgba(3, 5, 15, 0.55);
+}
+:root.dark.theme-glass .topbar {
+  background: rgba(17, 22, 45, 0.4);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+:root.dark.theme-glass .node-stats button,
+:root.dark.theme-glass .filters button,
+:root.dark.theme-glass .region-filter,
+:root.dark.theme-glass .server-search,
+:root.dark.theme-glass .leaderboard-tabs button,
+:root.dark.theme-glass .ranges button {
+  background: rgba(51, 58, 100, 0.4);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+:root.dark.theme-glass .server-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root.dark.theme-glass .modal-backdrop {
+  background: rgba(3, 5, 15, 0.55);
+}
+:root.theme-glass .detail-cols > div,
+:root.theme-glass .detail-panel {
+  padding: 14px;
+}
