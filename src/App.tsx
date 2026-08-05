@@ -668,7 +668,7 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
         {dying && <span className="mini-expiry">{remainingDays(server.expires_at)}</span>}
       </div>
       {expanded && (
-        <div className="mini-detail">
+        <div className="mini-detail mini-resources">
           {server.cpu_pct !== undefined && (
             <span title={`CPU ${server.cpu_pct.toFixed(1)}%`}>
               <Cpu size={12} />
@@ -693,6 +693,22 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
               {traffic}
             </span>
           )}
+        </div>
+      )}
+      {expanded && (
+        <div className="mini-detail mini-latency">
+          {pingAvg && (
+            <span title={`平均延迟 ${pingAvg.current_ms < 0 ? '超时' : `${pingAvg.current_ms.toFixed(0)} ms`}`}>
+              <Gauge size={12} />
+              {pingAvg.current_ms < 0 ? '超时' : `${pingAvg.current_ms.toFixed(0)}ms`}
+            </span>
+          )}
+          {pingAvg && (
+            <span className={pingAvg.loss_pct > 0 ? 'mini-loss' : ''} title={`丢包率 ${pingAvg.loss_pct.toFixed(1)}%`}>
+              <Wifi size={12} />
+              {pingAvg.loss_pct.toFixed(1)}%
+            </span>
+          )}
           {server.download_speed !== undefined && (
             <span title={`下行 ${speed(server.download_speed)}`}>
               <ArrowDown size={12} />
@@ -703,12 +719,6 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
             <span title={`上行 ${speed(server.upload_speed)}`}>
               <ArrowUp size={12} />
               {speed(server.upload_speed)}
-            </span>
-          )}
-          {pingAvg && (
-            <span title={`延迟 ${pingAvg.current_ms < 0 ? '超时' : `${pingAvg.current_ms.toFixed(0)} ms`} · 丢包 ${pingAvg.loss_pct.toFixed(1)}%`}>
-              <Gauge size={12} />
-              {pingAvg.current_ms < 0 ? '超时' : `${pingAvg.current_ms.toFixed(0)}ms`}
             </span>
           )}
         </div>

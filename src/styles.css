@@ -190,6 +190,16 @@ button {
   gap: 3px;
   white-space: nowrap;
 }
+.mini-detail .mini-loss {
+  color: #dc2626;
+}
+.mini-resources {
+  font-size: 10px;
+}
+.mini-latency {
+  padding-top: 3px;
+  border-top: none;
+}
 .mini-detail svg {
   flex: none;
   opacity: 0.75;
