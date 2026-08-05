@@ -1691,6 +1691,7 @@ footer a:hover {
   gap: 10px;
   padding: 9px 14px;
   border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
   position: sticky;
   top: 0;
   background: var(--surface);
@@ -1771,6 +1772,9 @@ footer a:hover {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   align-items: start;
+}
+.detail-cols > div {
+  border-radius: var(--radius);
 }
 .detail-col-stack {
   display: flex;
