@@ -1,17 +1,20 @@
-# MMWX Probe
+# Jiwo Probe（鸡窝状态站）
 
-妙妙屋 X（MiaoMiaoWuX）的独立服务器探针前端。项目将 React 静态页面、只读 API 代理和 WebSocket 代理部署到同一个 Cloudflare Worker，访客只接触探针域名，无需直接访问主控域名。
+妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `af0d6f0`）。
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/mmwx-group/mmwx-probe)
+与原版的差异（定制增强）：
 
-## 功能
+- **液态玻璃主题**（第 4 主题，`pixel → flat → anime → glass` 循环）——渐变玻璃面 + 斜向镜面光泽 + 4 层光斑背景，且做过性能优化（backdrop-filter 从 50+ 层降到 2 层，低 CPU/低耗电）
+- **多维榜单**——CPU / 内存 / 流量 / 延迟四维 Top 10，Twemoji 国旗，双向排序
+- **搜索框**——按名称/地区即时过滤节点
+- **地区分布折叠卡**——按地区聚合，全球 SVG 分布图
+- **资产总揽**——总剩余价值 / 月均成本 / 覆盖台数（按剩余天数折算）
+- **详情页增强**——剩余价值、负载三值、上行/下行速度对称布局、到期与续费信息
+- **手机端适配**——宽度断点对齐、许可证底栏单行、紧凑速度徽章
 
-- 卡片和列表两种服务器视图
-- CPU、内存、硬盘、流量及实时网速
-- 延迟、丢包率及 1h/6h/24h 趋势图
-- WebSocket 实时更新，断线后自动回退到 HTTP 轮询
-- 自动同步主控的 Pixel、Flat、Anime 默认主题
-- Worker Secret 保护主控探针接口，浏览器无法读取访问密钥
+## 许可证
+
+本项目采用 [Miaomiaowu X Source Available License v1.0](LICENSE)（官方许可证，未修改）。允许非商业使用、学习、修改和按许可证要求分发；商业使用需取得原作者授权。**本 fork 非官方发布，与妙妙屋 X 无任何关联或背书。**
 
 ## 工作方式
 
@@ -34,28 +37,28 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
 - Node.js 22 或更高版本、npm 10 或更高版本
 - 主控具有可由 Cloudflare 访问的 HTTPS 地址
 
-先进入主控的“系统设置 → 探针”，启用探针、选择展示服务器和指标，然后生成“独立探针访问密钥”。密钥明文只显示一次，请立即保存，切勿提交到 Git。
+先进入主控的"系统设置 → 探针"，启用探针、选择展示服务器和指标，然后生成"独立探针访问密钥"。密钥明文只显示一次，请立即保存，切勿提交到 Git。
 
 ## Cloudflare 网页部署（推荐）
 
 整个过程由 Cloudflare 从 GitHub 拉取、编译和部署，不需要在本地 clone，也不需要安装 Node.js：
 
-1. 点击上方 **Deploy to Cloudflare**。如果按钮暂时不可用，进入 Cloudflare Dashboard 的 **Workers & Pages → Create application → Import a repository**，选择 `iluobei/mmwx-probe`。
+1. 在 Cloudflare Dashboard 的 **Workers & Pages → Create application → Import a repository**，选择 `chnnic/jiwo-probe`。
 2. 保持以下构建设置：
    - Production branch：`main`
    - Build command：`npm run build`
    - Deploy command：`npx wrangler deploy`
-   - Root directory：独立仓库留空；从主项目部署时填写 `mmwx-probe`
+   - Root directory：独立仓库留空
 3. 首次部署后，进入 Worker 的 **Settings → Variables and Secrets**，添加运行时变量：
 
    | 名称 | 类型 | 值 |
    | --- | --- | --- |
    | `MMWX_ORIGIN` | Text | 主控 HTTPS 地址，例如 `https://panel.example.com` |
-   | `PROBE_TOKEN` | Secret | 主控“系统设置 → 探针”生成的访问密钥 |
+   | `PROBE_TOKEN` | Secret | 主控"系统设置 → 探针"生成的访问密钥 |
 
    注意这里是 Worker 的运行时 **Variables and Secrets**，不是 **Build Variables and Secrets**。保存后点击 Deploy，使变量进入当前部署。
 4. 打开 Worker 地址，确认服务器列表、趋势图和实时更新正常。
-5. 最后回到主控，开启“仅允许独立探针访问”。此后直接访问主控的探针接口会返回 `404`。
+5. 最后回到主控，开启"仅允许独立探针访问"。此后直接访问主控的探针接口会返回 `404`。
 
 连接 GitHub 后，每次推送到 `main` 分支都会由 Workers Builds 自动构建和部署。
 
@@ -64,8 +67,8 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
 1. 克隆项目并安装依赖：
 
    ```bash
-   git clone https://github.com/你的用户名/mmwx-probe.git
-   cd mmwx-probe
+   git clone https://github.com/chnnic/jiwo-probe.git
+   cd jiwo-probe
    npm ci
    npx wrangler login
    ```
@@ -84,11 +87,11 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    npm run deploy
    ```
 
-5. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启“仅允许独立探针访问”。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
+5. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
 
 ### 绑定自定义域名
 
-在 Cloudflare Dashboard 中进入 **Workers & Pages → mmwx-probe → Settings → Domains & Routes**，添加自定义域名。DNS、TLS 和 WebSocket 均由 Cloudflare 处理，无需修改前端代码。
+在 Cloudflare Dashboard 中进入 **Workers & Pages → jiwo-probe → Settings → Domains & Routes**，添加自定义域名。DNS、TLS 和 WebSocket 均由 Cloudflare 处理，无需修改前端代码。
 
 ## 本地开发
 
@@ -139,21 +142,11 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 - `MMWX_ORIGIN must use HTTPS`：生产源站不是 HTTPS。本地调试仅允许 `localhost` 或 `127.0.0.1`。
 - 页面没有服务器：在主控探针设置中选择需要展示的服务器。
 
-## 发布到 GitHub
+## 上游同步
 
-如果当前目录尚未初始化为独立仓库：
+本 fork 基于上游 `af0d6f0`。若上游有更新，可手动合并（注意 `src/styles.css` 和 `src/types.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
-git init
-git add .
-git commit -m "Initial release"
-git branch -M main
-git remote add origin https://github.com/你的用户名/mmwx-probe.git
-git push -u origin main
+git fetch origin
+git merge origin/main
 ```
-
-提交前确认 `.dev.vars`、`wrangler.local.jsonc`、`node_modules/` 和 `dist/` 未被纳入版本控制。
-
-## 许可证
-
-本项目采用 [Miaomiaowu X Source Available License v1.0](LICENSE)。允许非商业使用、学习、修改和按许可证要求分发；商业使用需取得授权。
