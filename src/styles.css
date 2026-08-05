@@ -123,6 +123,79 @@ button {
 .servers.list {
   display: block;
 }
+.servers.mini {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.server-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  min-width: 0;
+}
+.server-mini-card:hover {
+  border-color: var(--primary);
+}
+.server-mini-card .mini-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.mini-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+.mini-metrics > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.mini-metrics svg {
+  flex: none;
+  opacity: 0.75;
+}
+.mini-metrics .mini-speed {
+  color: var(--foreground);
+}
+.mini-expiry {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: #dc2626;
+  font-size: 10px;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .servers.mini {
+    gap: 5px;
+  }
+  .server-mini-card {
+    padding: 6px 10px;
+    gap: 7px;
+  }
+  .mini-metrics {
+    gap: 7px;
+    font-size: 10px;
+  }
+}
 .dashboard-summary,
 .probe-toolbar {
   width: min(1600px, calc(100% - 48px));
@@ -2143,6 +2216,7 @@ footer a:hover {
 :root.theme-glass .summary-card,
 :root.theme-glass .probe-toolbar,
 :root.theme-glass .server-card,
+:root.theme-glass .server-mini-card,
 :root.theme-glass .globe-card,
 :root.theme-glass .leaderboard-card,
 :root.theme-glass .modal,
@@ -2161,6 +2235,7 @@ footer a:hover {
 :root.theme-glass .summary-card::before,
 :root.theme-glass .probe-toolbar::before,
 :root.theme-glass .server-card::before,
+:root.theme-glass .server-mini-card::before,
 :root.theme-glass .globe-card::before,
 :root.theme-glass .leaderboard-card::before,
 :root.theme-glass .modal::before,
@@ -2173,7 +2248,8 @@ footer a:hover {
   border-radius: inherit;
   background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
 }
-:root.theme-glass .server-card:hover {
+:root.theme-glass .server-card:hover,
+:root.theme-glass .server-mini-card:hover {
   border-color: rgba(99, 102, 241, 0.55);
   box-shadow:
     0 24px 60px rgba(79, 70, 229, 0.24),
@@ -2299,6 +2375,7 @@ footer a:hover {
 :root.dark.theme-glass .summary-card,
 :root.dark.theme-glass .probe-toolbar,
 :root.dark.theme-glass .server-card,
+:root.dark.theme-glass .server-mini-card,
 :root.dark.theme-glass .globe-card,
 :root.dark.theme-glass .leaderboard-card,
 :root.dark.theme-glass .modal,
@@ -2316,6 +2393,7 @@ footer a:hover {
 :root.dark.theme-glass .summary-card::before,
 :root.dark.theme-glass .probe-toolbar::before,
 :root.dark.theme-glass .server-card::before,
+:root.dark.theme-glass .server-mini-card::before,
 :root.dark.theme-glass .globe-card::before,
 :root.dark.theme-glass .leaderboard-card::before,
 :root.dark.theme-glass .modal::before,
