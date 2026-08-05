@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Activity, ArrowDown, ArrowUp, CalendarClock, ChevronLeft, Cpu, HardDrive, MemoryStick, PieChart, Wallet, Wifi, X } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, ChevronLeft, Cpu, HardDrive, MemoryStick, PieChart, Wallet, Wifi, X } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbePingSeries, ProbeServer } from './types'
 import { Twemoji } from './Twemoji'
@@ -12,6 +12,73 @@ const cycleLabel = {
   half_year: '半年',
   year: '年',
 } as const
+
+const CYCLE_DAYS = {
+  month: 30,
+  quarter: 90,
+  half_year: 180,
+  year: 365,
+} as const
+
+interface RemainingValue {
+  days: number
+  cycleDays: number
+  daily: number
+  value: number
+  currency: string
+  isCny: boolean
+}
+
+function computeRemainingValue(server: ProbeServer): RemainingValue | null {
+  if (!server.expires_at || server.renewal_price === undefined) return null
+  const expires = new Date(`${server.expires_at}T23:59:59`).getTime()
+  const days = Math.ceil((expires - Date.now()) / 86400000)
+  if (days <= 0) return null // 已过期，无剩余价值
+  const cycleDays = CYCLE_DAYS[server.renewal_cycle || 'month']
+  const isCny = server.renewal_price_cny !== undefined
+  const price = isCny ? server.renewal_price_cny! : server.renewal_price
+  const daily = price / cycleDays
+  return {
+    days,
+    cycleDays,
+    daily,
+    value: daily * days,
+    currency: isCny ? 'CNY' : server.renewal_currency || 'CNY',
+    isCny,
+  }
+}
+
+function formatMoney(value: number, currency: string, isCny: boolean): string {
+  if (isCny) return `¥${value.toFixed(0)}`
+  return `${currency} ${value.toFixed(2)}`
+}
+
+function RemainingValueBlock({ server }: { server: ProbeServer }) {
+  const rv = computeRemainingValue(server)
+  if (!rv) return null
+  const percent = Math.min(100, Math.max(0, (rv.days / rv.cycleDays) * 100))
+  return (
+    <div className="detail-value">
+      <div className="detail-value-main">
+        <span>
+          <BadgeDollarSign size={15} />
+          剩余价值
+        </span>
+        <strong>{formatMoney(rv.value, rv.currency, rv.isCny)}</strong>
+        <small>≈ 按剩余天数折算</small>
+      </div>
+      <div className="detail-value-sub">
+        <span>日成本 {formatMoney(rv.daily, rv.currency, rv.isCny)}</span>
+        <span>
+          剩余 {rv.days} / {rv.cycleDays} 天
+        </span>
+      </div>
+      <div className="meter">
+        <i style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  )
+}
 
 const RANGES = [
   { key: '1h', label: '1 小时', bucketLabel: (index: number, count: number) => `-${(count - index) * 5}m` },
@@ -226,6 +293,7 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
                   </span>
                 )}
               </div>
+              <RemainingValueBlock server={server} />
             </section>
           )}
 

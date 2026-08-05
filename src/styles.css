@@ -1723,3 +1723,46 @@ footer a:hover {
     height: 260px;
   }
 }
+
+/* ===== 剩余价值 ===== */
+.detail-value {
+  margin-top: 14px;
+  padding: 13px 15px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-elevated, var(--surface));
+}
+.detail-value-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.detail-value-main > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.detail-value-main strong {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--accent, #8b5cf6);
+}
+.detail-value-main small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.detail-value-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.detail-value .meter {
+  margin-top: 10px;
+}
