@@ -218,6 +218,15 @@ const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactN
 function Leaderboard({ servers }: { servers: ProbeServer[] }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<LeaderboardKey>('cpu')
+  const [desc, setDesc] = useState(true)
+  const selectTab = (key: LeaderboardKey) => {
+    if (key === tab) {
+      setDesc((value) => !value)
+    } else {
+      setTab(key)
+      setDesc(true)
+    }
+  }
   const rows = useMemo(() => {
     const indexed = servers.map((server, index) => {
       const avg = averagePing(server.ping || [])
@@ -227,9 +236,9 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
     })
     return indexed
       .filter((row) => row.value >= 0)
-      .sort((a, b) => b.value - a.value)
+      .sort((a, b) => (desc ? b.value - a.value : a.value - b.value))
       .slice(0, 10)
-  }, [servers, tab])
+  }, [servers, tab, desc])
   const format = (value: number) =>
     tab === 'cpu' || tab === 'mem' ? `${value.toFixed(1)}%` : tab === 'traffic' ? bytes(value, false) : `${value.toFixed(0)} ms`
   return (
@@ -248,9 +257,10 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
         <div className="leaderboard-body">
           <div className="leaderboard-tabs">
             {LEADERBOARD_TABS.map((item) => (
-              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => setTab(item.key)}>
+              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => selectTab(item.key)}>
                 {item.icon}
                 {item.label}
+                {tab === item.key && <span className="sort-arrow">{desc ? '↓' : '↑'}</span>}
               </button>
             ))}
           </div>
@@ -260,7 +270,9 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
                 <button type="button" onClick={() => (location.hash = `#/server/${index}`)}>
                   <span className="rank">{rank + 1}</span>
                   <span className="lb-name">
-                    {regionFlag(server.region) && !hasLeadingFlag(server.name || '') ? `${regionFlag(server.region)} ${server.name}` : server.name}
+                    <Twemoji>
+                      {regionFlag(server.region) && !hasLeadingFlag(server.name || '') ? `${regionFlag(server.region)} ${server.name}` : server.name}
+                    </Twemoji>
                   </span>
                   <span className="lb-value">{format(value)}</span>
                 </button>

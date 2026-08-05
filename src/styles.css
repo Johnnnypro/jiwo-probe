@@ -1190,6 +1190,11 @@ footer a:hover {
   border-color: var(--accent, #8b5cf6);
   background: color-mix(in srgb, var(--accent, #8b5cf6) 10%, transparent);
 }
+.leaderboard-tabs .sort-arrow {
+  font-size: 10px;
+  color: var(--accent, #8b5cf6);
+  line-height: 1;
+}
 .leaderboard-list {
   list-style: none;
   margin: 0;
