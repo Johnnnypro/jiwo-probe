@@ -40,6 +40,9 @@ export function bytes(value = 0, decimal = true): string {
     n /= 1024
     i++
   }
+  if (i === 4) {
+    return `${Math.abs(n - Math.round(n)) < 1e-9 ? n.toFixed(0) : n.toFixed(2)} ${units[i]}`
+  }
   return `${n.toFixed(decimal && i >= 2 ? 1 : 0)} ${units[i]}`
 }
 
