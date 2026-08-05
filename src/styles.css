@@ -1641,6 +1641,15 @@ footer a:hover {
   .probe-license-nameplate {
     flex-shrink: 0;
   }
+  .detail-loadavg {
+    gap: 4px;
+  }
+  .detail-loadavg .loadavg-label {
+    display: none;
+  }
+  .detail-loadavg code {
+    padding: 1px 5px;
+  }
   .globe-toggle {
     padding-inline: 13px;
   }

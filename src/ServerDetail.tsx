@@ -205,7 +205,7 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
                 {server.loadavg && (
                   <div className="detail-loadavg">
                     <Activity size={14} />
-                    负载
+                    <span className="loadavg-label">负载</span>
                     {server.loadavg.split(/\s+/).slice(0, 3).map((value, i) => (
                       <code key={i}>{value}</code>
                     ))}
@@ -213,13 +213,13 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
                 )}
                 {(server.upload_speed !== undefined || server.download_speed !== undefined) && (
                   <div className="detail-speed">
-                    <span className="download">
+                    <span className="download" title="下行速度">
                       <ArrowDown size={16} />
-                      下行 {speed(server.download_speed)}
+                      {speed(server.download_speed)}
                     </span>
-                    <span className="upload">
+                    <span className="upload" title="上行速度">
                       <ArrowUp size={16} />
-                      上行 {speed(server.upload_speed)}
+                      {speed(server.upload_speed)}
                     </span>
                   </div>
                 )}
