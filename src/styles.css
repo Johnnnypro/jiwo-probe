@@ -1535,7 +1535,7 @@ footer a:hover {
   padding-bottom: 0;
   border-color: #eadffc;
 }
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .dashboard-summary {
     grid-template-columns: 1fr;
   }
@@ -1543,7 +1543,8 @@ footer a:hover {
 @media (max-width: 760px) {
   .servers,
   .dashboard-summary,
-  .probe-toolbar {
+  .probe-toolbar,
+  .globe-row {
     width: min(100% - 20px, 1600px);
   }
   .servers {
