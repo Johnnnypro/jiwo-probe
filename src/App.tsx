@@ -727,25 +727,30 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
               {speed(server.upload_speed)}
             </span>
           )}
-          {!!server.return_routes?.length && (
-            <>
-              {(() => {
-                const byCarrier = new Map(server.return_routes!.map((route) => [route.carrier, route]))
-                return (['telecom', 'unicom', 'mobile'] as const).map((carrier) => {
-                  const route = byCarrier.get(carrier)
-                  const detectedRouteType = displayReturnRoute(route?.route_type || 'Unknown')
+          {(() => {
+            const byCarrier = new Map((server.return_routes || []).map((route) => [route.carrier, route]))
+            const carriers = (['telecom', 'unicom', 'mobile'] as const).filter((carrier) => {
+              const route = byCarrier.get(carrier)
+              return !!route?.route_type && route.route_type.toLowerCase() !== 'unknown'
+            })
+            if (!carriers.length) return null
+            return (
+              <>
+                {carriers.map((carrier) => {
+                  const route = byCarrier.get(carrier)!
+                  const detectedRouteType = displayReturnRoute(route.route_type || 'Unknown')
                   const routeType = carrier === 'telecom' && server.telecom_paid_peer && detectedRouteType === '163' ? '163 PP' : detectedRouteType
                   const premium = goldRoutes.has(routeType.toUpperCase().replace(/[^A-Z0-9]/g, ''))
                   return (
-                    <span key={carrier} className={premium ? 'mini-route gold' : 'mini-route'} title={route?.region ? `${route.region} · ${routeType}` : routeType}>
+                    <span key={carrier} className={premium ? 'mini-route gold' : 'mini-route'} title={route.region ? `${route.region} · ${routeType}` : routeType}>
                       <small>{routeCarrierLabels[carrier]}</small>
                       <strong>{routeType}</strong>
                     </span>
                   )
-                })
-              })()}
-            </>
-          )}
+                })}
+              </>
+            )
+          })()}
         </div>
       )}
     </article>
