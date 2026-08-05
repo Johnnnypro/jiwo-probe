@@ -202,25 +202,28 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
                     percent={pct(server.traffic_used, server.traffic_limit)}
                   />
                 )}
+                {server.loadavg && (
+                  <div className="detail-loadavg">
+                    <Activity size={14} />
+                    负载
+                    {server.loadavg.split(/\s+/).slice(0, 3).map((value, i) => (
+                      <code key={i}>{value}</code>
+                    ))}
+                  </div>
+                )}
+                {(server.upload_speed !== undefined || server.download_speed !== undefined) && (
+                  <div className="detail-speed">
+                    <span className="download">
+                      <ArrowDown size={16} />
+                      下行 {speed(server.download_speed)}
+                    </span>
+                    <span className="upload">
+                      <ArrowUp size={16} />
+                      上行 {speed(server.upload_speed)}
+                    </span>
+                  </div>
+                )}
               </div>
-              {server.loadavg && (
-                <div className="detail-loadavg">
-                  <Activity size={14} />
-                  负载: <code>{server.loadavg}</code>
-                </div>
-              )}
-              {(server.upload_speed !== undefined || server.download_speed !== undefined) && (
-                <div className="detail-speed">
-                  <span className="download">
-                    <ArrowDown size={16} />
-                    下行 {speed(server.download_speed)}
-                  </span>
-                  <span className="upload">
-                    <ArrowUp size={16} />
-                    上行 {speed(server.upload_speed)}
-                  </span>
-                </div>
-              )}
             </section>
 
             <div className="detail-col-stack">

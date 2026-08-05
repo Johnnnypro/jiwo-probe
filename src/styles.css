@@ -1804,7 +1804,7 @@ footer a:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 9px;
+  min-width: 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -1814,12 +1814,13 @@ footer a:hover {
   background: var(--border);
   font-size: 11px;
   color: var(--foreground);
+  white-space: nowrap;
 }
 .detail-speed {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 9px;
+  align-self: center;
 }
 .detail-speed > span {
   display: inline-flex;
