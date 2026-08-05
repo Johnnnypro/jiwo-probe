@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
 import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
@@ -668,11 +668,19 @@ export function App() {
     const match = /^#\/server\/(\d+)$/.exec(window.location.hash)
     return match ? Number(match[1]) : null
   })
+  const detailScrollRef = useRef(0)
   useEffect(() => {
     const onHashChange = () => {
       const match = /^#\/server\/(\d+)$/.exec(window.location.hash)
-      setDetailIndex(match ? Number(match[1]) : null)
-      window.scrollTo(0, 0)
+      const next = match ? Number(match[1]) : null
+      if (next !== null) {
+        // 打开详情页：记录主页面滚动位置，供关闭时恢复
+        detailScrollRef.current = window.scrollY
+      } else {
+        // 关闭详情页：恢复到最后浏览的位置
+        window.scrollTo(0, detailScrollRef.current)
+      }
+      setDetailIndex(next)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
@@ -680,6 +688,7 @@ export function App() {
   const closeDetail = useCallback(() => {
     history.replaceState(null, '', window.location.pathname + window.location.search)
     setDetailIndex(null)
+    window.scrollTo(0, detailScrollRef.current)
   }, [])
   const isDark = darkMode === 'dark' || (darkMode === null && document.documentElement.classList.contains('dark'))
   const toggleDark = () => {
