@@ -1664,17 +1664,15 @@ footer a:hover {
   }
   .route-badge small {
     flex: none;
-    writing-mode: vertical-rl;
-    font-size: 7px;
-    line-height: 1;
-    letter-spacing: -0.02em;
+    font-size: 8px;
+    line-height: 1.1;
   }
   .route-badge strong {
     flex: none;
     margin-left: 2px;
     overflow: visible;
     text-overflow: clip;
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: -0.02em;
   }
 }
