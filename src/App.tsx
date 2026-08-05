@@ -114,6 +114,48 @@ export function regionCountryLabel(server: ProbeServer): string {
   return server.region_country?.trim() || ''
 }
 
+function RegionSelect({ regions, value, onChange }: { regions: string[]; value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handle = (event: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
+
+  const selected = value === 'all' ? null : value
+  return (
+    <div className="region-select" ref={wrapRef}>
+      <button type="button" className="region-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <MapPin size={14} />
+        <span className="region-trigger-value">
+          <Twemoji>{selected || '🌍'}</Twemoji>
+          <em>{selected ? '所选地区' : '全部地区'}</em>
+        </span>
+        <ChevronDown size={13} className={open ? 'rotated' : ''} />
+      </button>
+      {open && (
+        <div className="region-menu" role="listbox">
+          <button type="button" role="option" aria-selected={value === 'all'} onClick={() => { onChange('all'); setOpen(false) }}>
+            <Twemoji>🌍</Twemoji>
+            <span>全部地区</span>
+          </button>
+          {regions.map((item) => (
+            <button type="button" role="option" aria-selected={value === item} key={item} onClick={() => { onChange(item); setOpen(false) }}>
+              <Twemoji>{item}</Twemoji>
+              <span>{item}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SpeedSummary({ label, value, direction }: { label: string; value: number; direction: 'up' | 'down' }) {
   const scale = speedScale(value)
   return (
@@ -957,17 +999,7 @@ export function App() {
             </>
           )}
           {regions.length > 0 && (
-            <label className="region-filter">
-              <MapPin size={14} />
-              <select aria-label="地区筛选" value={region} onChange={(event) => setRegion(event.target.value)}>
-                <option value="all">🌍 全部地区</option>
-                {regions.map((item) => (
-                  <option value={item} key={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <RegionSelect regions={regions} value={region} onChange={setRegion} />
           )}
           <label className="server-search">
             <Search size={14} />

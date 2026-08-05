@@ -1448,23 +1448,80 @@ footer a:hover {
 .filters {
   align-items: center;
 }
-.region-filter {
-  display: inline-flex;
+.region-select {
+  position: relative;
   flex: 0 0 auto;
+}
+.region-trigger {
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 9px;
   color: var(--muted);
   background: var(--surface);
-}
-.region-filter select {
-  border: 0;
-  outline: 0;
-  color: inherit;
-  background: transparent;
   cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.region-trigger:hover {
+  border-color: var(--accent, #8b5cf6);
+}
+.region-trigger[aria-expanded='true'] {
+  border-color: var(--accent, #8b5cf6);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #8b5cf6) 18%, transparent);
+}
+.region-trigger-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.region-trigger-value em {
+  font-style: normal;
+  font-weight: 500;
+}
+.region-trigger .rotated {
+  transform: rotate(180deg);
+  transition: transform 0.15s;
+}
+.region-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 50;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.16);
+}
+.region-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: calc(var(--radius) * 0.7);
+  color: var(--muted);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+}
+.region-menu button:hover {
+  background: color-mix(in srgb, var(--accent, #8b5cf6) 12%, transparent);
+  color: var(--foreground);
+}
+.region-menu button[aria-selected='true'] {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.region-menu button .emoji {
+  width: 1.1em;
+  height: 1.1em;
 }
 .server-search {
   display: inline-flex;
@@ -1527,7 +1584,7 @@ footer a:hover {
   z-index: 1;
 }
 :root.theme-anime .filters button,
-:root.theme-anime .region-filter {
+:root.theme-anime .region-trigger {
   border-radius: 4px;
 }
 :root.theme-anime .server-meta {
@@ -2137,9 +2194,25 @@ footer a:hover {
     inset 0 1px 0 rgba(255, 255, 255, 1),
     inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
+:root.theme-glass .region-menu {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    0 18px 50px rgba(79, 70, 229, 0.16),
+    0 4px 12px rgba(79, 70, 229, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+:root.dark.theme-glass .region-menu {
+  background: linear-gradient(150deg, rgba(56, 66, 120, 0.5) 0%, rgba(24, 30, 60, 0.24) 55%, rgba(44, 54, 100, 0.38) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
 :root.theme-glass .node-stats button,
 :root.theme-glass .filters button,
-:root.theme-glass .region-filter,
+:root.theme-glass .region-trigger,
 :root.theme-glass .server-search,
 :root.theme-glass .leaderboard-tabs button,
 :root.theme-glass .ranges button {
@@ -2290,7 +2363,7 @@ footer a:hover {
 }
 :root.dark.theme-glass .node-stats button,
 :root.dark.theme-glass .filters button,
-:root.dark.theme-glass .region-filter,
+:root.dark.theme-glass .region-trigger,
 :root.dark.theme-glass .server-search,
 :root.dark.theme-glass .leaderboard-tabs button,
 :root.dark.theme-glass .ranges button {
