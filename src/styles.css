@@ -1996,30 +1996,34 @@ footer a:hover {
   font-weight: 600;
 }
 
-/* ===== 液态玻璃主题（Liquid Glass）===== */
+/* ===== 液态玻璃主题（Liquid Glass）=====
+   区别于毛玻璃: 更低不透明度让背景色彩透出、渐变表面模拟玻璃厚度、
+   顶部镜面高光 + 斜向光泽扫过(::before)、饱和光斑背景、悬浮彩色阴影 */
 :root.theme-glass {
   --primary: #6366f1;
-  --radius: 16px;
-  --page-bg: #eef1ff;
-  --shadow: 0 10px 34px rgba(79, 70, 229, 0.14);
-  --surface: rgba(255, 255, 255, 0.42);
-  --border: rgba(255, 255, 255, 0.72);
+  --radius: 20px;
+  --page-bg: #e8ecff;
+  --shadow: 0 18px 50px rgba(79, 70, 229, 0.16);
+  --surface: rgba(255, 255, 255, 0.24);
+  --border: rgba(255, 255, 255, 0.62);
   --muted: #6b7280;
   --accent: #6366f1;
 }
 :root.theme-glass .app-shell {
   background:
-    radial-gradient(1100px 650px at 12% -8%, rgba(129, 140, 248, 0.35), transparent 62%),
-    radial-gradient(900px 580px at 88% 6%, rgba(34, 211, 238, 0.28), transparent 60%),
-    radial-gradient(1000px 700px at 55% 108%, rgba(232, 121, 249, 0.22), transparent 62%),
-    linear-gradient(135deg, #eef1ff 0%, #f6f3ff 50%, #edf7ff 100%);
+    radial-gradient(1200px 700px at 8% -10%, rgba(129, 140, 248, 0.55), transparent 60%),
+    radial-gradient(950px 620px at 92% 4%, rgba(34, 211, 238, 0.5), transparent 58%),
+    radial-gradient(850px 600px at 55% 32%, rgba(232, 121, 249, 0.32), transparent 60%),
+    radial-gradient(1100px 750px at 18% 108%, rgba(52, 211, 153, 0.4), transparent 62%),
+    linear-gradient(135deg, #e8ecff 0%, #f6f3ff 45%, #eaf6ff 100%);
   background-attachment: fixed;
 }
 :root.theme-glass .topbar {
-  background: rgba(255, 255, 255, 0.32);
-  backdrop-filter: blur(18px) saturate(170%);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
+  backdrop-filter: blur(14px) saturate(190%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 24px rgba(79, 70, 229, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 :root.theme-glass .summary-card,
 :root.theme-glass .probe-toolbar,
@@ -2029,19 +2033,40 @@ footer a:hover {
 :root.theme-glass .modal,
 :root.theme-glass .detail-cols > div,
 :root.theme-glass .detail-panel {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(20px) saturate(170%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  position: relative;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
+  backdrop-filter: blur(14px) saturate(190%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
   box-shadow:
-    0 10px 34px rgba(79, 70, 229, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 18px 50px rgba(79, 70, 229, 0.16),
+    0 4px 12px rgba(79, 70, 229, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+/* 斜向镜面光泽扫过（液态玻璃特征） */
+:root.theme-glass .summary-card::before,
+:root.theme-glass .probe-toolbar::before,
+:root.theme-glass .server-card::before,
+:root.theme-glass .globe-card::before,
+:root.theme-glass .leaderboard-card::before,
+:root.theme-glass .modal::before,
+:root.theme-glass .detail-cols > div::before,
+:root.theme-glass .detail-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
 }
 :root.theme-glass .server-card:hover {
-  border-color: rgba(99, 102, 241, 0.65);
+  border-color: rgba(99, 102, 241, 0.55);
   box-shadow:
-    0 14px 40px rgba(79, 70, 229, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    0 24px 60px rgba(79, 70, 229, 0.24),
+    0 6px 16px rgba(79, 70, 229, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 }
 :root.theme-glass .node-stats button,
 :root.theme-glass .filters button,
@@ -2049,75 +2074,100 @@ footer a:hover {
 :root.theme-glass .server-search,
 :root.theme-glass .leaderboard-tabs button,
 :root.theme-glass .ranges button {
-  background: rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
   border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 :root.theme-glass .filters button.active {
-  background: color-mix(in srgb, var(--primary) 82%, #fff);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 90%, #fff), var(--primary));
   color: #fff;
   border-color: transparent;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 :root.theme-glass .modal-backdrop {
-  background: rgba(99, 102, 241, 0.16);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(99, 102, 241, 0.12);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
 }
 :root.theme-glass .server-detail-backdrop {
-  background: rgba(99, 102, 241, 0.16);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(99, 102, 241, 0.12);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 :root.theme-glass .server-detail {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(20px) saturate(170%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  position: relative;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
+  backdrop-filter: blur(14px) saturate(190%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
   box-shadow:
-    0 24px 60px rgba(79, 70, 229, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 28px 70px rgba(79, 70, 229, 0.2),
+    0 6px 16px rgba(79, 70, 229, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+:root.theme-glass .server-detail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
 }
 :root.theme-glass .server-detail-header {
-  background: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
   border-bottom: 1px solid rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
 }
 :root.theme-glass .server-table {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(20px) saturate(170%);
-  -webkit-backdrop-filter: blur(20px) saturate(170%);
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  position: relative;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.18) 55%, rgba(255, 255, 255, 0.32) 100%);
+  backdrop-filter: blur(14px) saturate(190%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
   border-radius: var(--radius);
   box-shadow:
-    0 10px 34px rgba(79, 70, 229, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 18px 50px rgba(79, 70, 229, 0.16),
+    0 4px 12px rgba(79, 70, 229, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+:root.theme-glass .server-table::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.38) 46%, rgba(255, 255, 255, 0.08) 58%, transparent 76%);
 }
 :root.theme-glass .server-table tbody tr {
   background: transparent;
 }
 :root.theme-glass .server-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.18);
 }
 :root.theme-glass .table-row-link:hover {
-  background: rgba(99, 102, 241, 0.08) !important;
+  background: rgba(99, 102, 241, 0.1) !important;
 }
 :root.dark.theme-glass {
-  --page-bg: #0d1124;
-  --surface: rgba(30, 35, 66, 0.45);
-  --border: rgba(148, 163, 184, 0.28);
+  --page-bg: #0c1024;
+  --surface: rgba(28, 34, 66, 0.28);
+  --border: rgba(148, 163, 184, 0.26);
   --muted: #a1a8c3;
-  --shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
   --accent: #818cf8;
   color: #e5e7eb;
 }
 :root.dark.theme-glass .app-shell {
   background:
-    radial-gradient(1100px 650px at 12% -8%, rgba(79, 70, 229, 0.3), transparent 62%),
-    radial-gradient(900px 580px at 88% 6%, rgba(14, 116, 144, 0.28), transparent 60%),
-    radial-gradient(1000px 700px at 55% 108%, rgba(134, 25, 143, 0.22), transparent 62%),
-    linear-gradient(135deg, #0d1124 0%, #141230 50%, #0c1b2e 100%);
+    radial-gradient(1200px 700px at 8% -10%, rgba(79, 70, 229, 0.4), transparent 60%),
+    radial-gradient(950px 620px at 92% 4%, rgba(14, 116, 144, 0.38), transparent 58%),
+    radial-gradient(850px 600px at 55% 32%, rgba(134, 25, 143, 0.3), transparent 60%),
+    radial-gradient(1100px 750px at 18% 108%, rgba(16, 120, 90, 0.32), transparent 62%),
+    linear-gradient(135deg, #0c1024 0%, #141230 45%, #0c1b2e 100%);
   background-attachment: fixed;
 }
 :root.dark.theme-glass .summary-card,
@@ -2129,27 +2179,48 @@ footer a:hover {
 :root.dark.theme-glass .detail-cols > div,
 :root.dark.theme-glass .detail-panel,
 :root.dark.theme-glass .server-table {
-  background: rgba(30, 35, 66, 0.45);
+  background: linear-gradient(150deg, rgba(56, 66, 120, 0.5) 0%, rgba(24, 30, 60, 0.24) 55%, rgba(44, 54, 100, 0.38) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.26);
   box-shadow:
-    0 10px 34px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 18px 50px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+:root.dark.theme-glass .summary-card::before,
+:root.dark.theme-glass .probe-toolbar::before,
+:root.dark.theme-glass .server-card::before,
+:root.dark.theme-glass .globe-card::before,
+:root.dark.theme-glass .leaderboard-card::before,
+:root.dark.theme-glass .modal::before,
+:root.dark.theme-glass .detail-cols > div::before,
+:root.dark.theme-glass .detail-panel::before,
+:root.dark.theme-glass .server-table::before {
+  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.07) 46%, rgba(255, 255, 255, 0.02) 58%, transparent 76%);
 }
 :root.dark.theme-glass .server-detail {
-  background: rgba(30, 35, 66, 0.45);
+  background: linear-gradient(150deg, rgba(56, 66, 120, 0.5) 0%, rgba(24, 30, 60, 0.24) 55%, rgba(44, 54, 100, 0.38) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.26);
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 28px 70px rgba(0, 0, 0, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+:root.dark.theme-glass .server-detail::before {
+  background: linear-gradient(115deg, transparent 24%, rgba(255, 255, 255, 0.07) 46%, rgba(255, 255, 255, 0.02) 58%, transparent 76%);
 }
 :root.dark.theme-glass .server-detail-header {
-  background: rgba(30, 35, 66, 0.5);
+  background: linear-gradient(180deg, rgba(48, 58, 105, 0.5), rgba(24, 30, 60, 0.3));
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 :root.dark.theme-glass .server-detail-backdrop {
-  background: rgba(3, 5, 15, 0.55);
+  background: rgba(3, 5, 15, 0.5);
 }
 :root.dark.theme-glass .topbar {
-  background: rgba(17, 22, 45, 0.4);
+  background: linear-gradient(180deg, rgba(40, 48, 92, 0.5), rgba(20, 25, 50, 0.24));
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 :root.dark.theme-glass .node-stats button,
 :root.dark.theme-glass .filters button,
@@ -2157,14 +2228,19 @@ footer a:hover {
 :root.dark.theme-glass .server-search,
 :root.dark.theme-glass .leaderboard-tabs button,
 :root.dark.theme-glass .ranges button {
-  background: rgba(51, 58, 100, 0.4);
+  background: linear-gradient(180deg, rgba(52, 62, 112, 0.5), rgba(28, 34, 66, 0.28));
   border-color: rgba(148, 163, 184, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+:root.dark.theme-glass .filters button.active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent));
+  box-shadow: 0 6px 18px rgba(129, 140, 248, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 :root.dark.theme-glass .server-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.045);
 }
 :root.dark.theme-glass .modal-backdrop {
-  background: rgba(3, 5, 15, 0.55);
+  background: rgba(3, 5, 15, 0.5);
 }
 :root.theme-glass .detail-cols > div,
 :root.theme-glass .detail-panel {
