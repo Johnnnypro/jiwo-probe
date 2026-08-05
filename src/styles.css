@@ -2269,3 +2269,16 @@ footer a:hover {
 :root.theme-glass .detail-panel {
   padding: 14px;
 }
+@media (max-width: 760px) {
+  .detail-speed {
+    gap: 4px;
+  }
+  .detail-speed > span {
+    padding: 2px 3px;
+    gap: 4px;
+  }
+  .detail-speed > span svg {
+    width: 12px;
+    height: 12px;
+  }
+}
