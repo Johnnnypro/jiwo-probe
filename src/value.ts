@@ -35,7 +35,7 @@ export function computeRemainingValue(server: ProbeServer): RemainingValue | nul
   }
 }
 
-export function formatMoney(value: number, currency: string, isCny: boolean): string {
-  if (isCny) return `¥${value.toFixed(0)}`
+export function formatMoney(value: number, currency: string, isCny: boolean, precise = false): string {
+  if (isCny) return precise ? `¥${value.toFixed(2)}` : `¥${value.toFixed(0)}`
   return `${currency} ${value.toFixed(2)}`
 }

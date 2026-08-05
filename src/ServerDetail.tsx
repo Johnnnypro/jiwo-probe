@@ -29,7 +29,7 @@ function RemainingValueBlock({ server }: { server: ProbeServer }) {
         <small>≈ 按剩余天数折算</small>
       </div>
       <div className="detail-value-sub">
-        <span>日成本 {formatMoney(rv.daily, rv.currency, rv.isCny)}</span>
+        <span>日成本 {formatMoney(rv.daily, rv.currency, rv.isCny, rv.daily < 1)}</span>
         <span>
           剩余 {rv.days} / {rv.cycleDays} 天
         </span>
