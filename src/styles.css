@@ -140,6 +140,18 @@ button {
   cursor: pointer;
   min-width: 0;
 }
+.server-mini-card .mini-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+.server-mini-card.expanded {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
 .server-mini-card:hover {
   border-color: var(--primary);
 }
@@ -152,6 +164,35 @@ button {
   white-space: nowrap;
   font-size: 13px;
   font-weight: 600;
+}
+.mini-state {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.mini-state.online {
+  color: var(--primary);
+}
+.mini-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+.mini-detail > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.mini-detail svg {
+  flex: none;
+  opacity: 0.75;
 }
 .mini-metrics {
   display: flex;
@@ -2461,5 +2502,16 @@ footer a:hover {
   .detail-speed > span svg {
     width: 12px;
     height: 12px;
+  }
+}
+/* 极简卡片展开模式手机压缩（追加在文件末尾，避免被基础规则覆盖） */
+@media (max-width: 640px) {
+  .server-mini-card.expanded {
+    gap: 5px;
+    padding: 6px 10px;
+  }
+  .server-mini-card.expanded .mini-detail {
+    gap: 3px 8px;
+    font-size: 10px;
   }
 }

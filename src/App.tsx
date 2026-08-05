@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Rows3, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
@@ -617,45 +617,102 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
   )
 }
 
-function ServerMiniCard({ server, index }: { server: ProbeServer; index: number }) {
+function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; index: number; expanded: boolean }) {
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   const memPct = server.mem_total ? pct(server.mem_used, server.mem_total) : undefined
+  const diskPct = server.disk_total ? pct(server.disk_used, server.disk_total) : undefined
   const traffic = server.traffic_limit ? `${bytes(server.traffic_used, false)}/${bytes(server.traffic_limit, false)}` : server.traffic_used !== undefined ? bytes(server.traffic_used, false) : undefined
   const dying = server.expires_at && (expiring(server) || expired(server))
+  const pingAvg = server.ping?.length ? averagePing(server.ping) : undefined
   return (
-    <article className="server-mini-card" onClick={() => { location.hash = `#/server/${index}` }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.hash = `#/server/${index}` } }} title="点击查看详情">
-      <span className={server.online ? 'status online' : 'status'} />
-      <h2 className="mini-name">
-        <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
-      </h2>
-      <div className="mini-metrics">
-        {server.cpu_pct !== undefined && (
-          <span title={`CPU ${server.cpu_pct.toFixed(1)}%`}>
-            <Cpu size={12} />
-            {server.cpu_pct.toFixed(0)}%
+    <article className={`server-mini-card${expanded ? ' expanded' : ''}`} onClick={() => { location.hash = `#/server/${index}` }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.hash = `#/server/${index}` } }} title="点击查看详情">
+      <div className="mini-top">
+        <span className={server.online ? 'status online' : 'status'} />
+        <h2 className="mini-name">
+          <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
+        </h2>
+        {!expanded && (
+          <div className="mini-metrics">
+            {server.cpu_pct !== undefined && (
+              <span title={`CPU ${server.cpu_pct.toFixed(1)}%`}>
+                <Cpu size={12} />
+                {server.cpu_pct.toFixed(0)}%
+              </span>
+            )}
+            {memPct !== undefined && (
+              <span title={`内存 ${memPct.toFixed(1)}%`}>
+                <MemoryStick size={12} />
+                {memPct.toFixed(0)}%
+              </span>
+            )}
+            {traffic !== undefined && (
+              <span title={`流量 ${traffic}`}>
+                <PieChart size={12} />
+                {server.traffic_limit ? `${pct(server.traffic_used, server.traffic_limit).toFixed(0)}%` : bytes(server.traffic_used, false)}
+              </span>
+            )}
+            {server.download_speed !== undefined && (
+              <span className="mini-speed" title={`下行 ${speed(server.download_speed)}${server.upload_speed !== undefined ? ` / 上行 ${speed(server.upload_speed)}` : ''}`}>
+                <ArrowDown size={12} />
+                {speed(server.download_speed)}
+              </span>
+            )}
+          </div>
+        )}
+        {expanded && (
+          <span className={server.online ? 'mini-state online' : 'mini-state'}>
+            {server.online ? '在线' : '离线'}
           </span>
         )}
-        {memPct !== undefined && (
-          <span title={`内存 ${memPct.toFixed(1)}%`}>
-            <MemoryStick size={12} />
-            {memPct.toFixed(0)}%
-          </span>
-        )}
-        {traffic !== undefined && (
-          <span title={`流量 ${traffic}`}>
-            <PieChart size={12} />
-            {server.traffic_limit ? `${pct(server.traffic_used, server.traffic_limit).toFixed(0)}%` : bytes(server.traffic_used, false)}
-          </span>
-        )}
-        {server.download_speed !== undefined && (
-          <span className="mini-speed" title={`下行 ${speed(server.download_speed)}${server.upload_speed !== undefined ? ` / 上行 ${speed(server.upload_speed)}` : ''}`}>
-            <ArrowDown size={12} />
-            {speed(server.download_speed)}
-          </span>
-        )}
+        {dying && <span className="mini-expiry">{remainingDays(server.expires_at)}</span>}
       </div>
-      {dying && <span className="mini-expiry">{remainingDays(server.expires_at)}</span>}
+      {expanded && (
+        <div className="mini-detail">
+          {server.cpu_pct !== undefined && (
+            <span title={`CPU ${server.cpu_pct.toFixed(1)}%`}>
+              <Cpu size={12} />
+              {server.cpu_pct.toFixed(1)}%
+            </span>
+          )}
+          {memPct !== undefined && (
+            <span title={`内存 ${bytes(server.mem_used, false)} / ${bytes(server.mem_total, false)}`}>
+              <MemoryStick size={12} />
+              {memPct.toFixed(1)}%
+            </span>
+          )}
+          {diskPct !== undefined && (
+            <span title={`硬盘 ${bytes(server.disk_used, false)} / ${bytes(server.disk_total, false)}`}>
+              <HardDrive size={12} />
+              {diskPct.toFixed(1)}%
+            </span>
+          )}
+          {traffic !== undefined && (
+            <span title={`流量 ${traffic}`}>
+              <PieChart size={12} />
+              {traffic}
+            </span>
+          )}
+          {server.download_speed !== undefined && (
+            <span title={`下行 ${speed(server.download_speed)}`}>
+              <ArrowDown size={12} />
+              {speed(server.download_speed)}
+            </span>
+          )}
+          {server.upload_speed !== undefined && (
+            <span title={`上行 ${speed(server.upload_speed)}`}>
+              <ArrowUp size={12} />
+              {speed(server.upload_speed)}
+            </span>
+          )}
+          {pingAvg && (
+            <span title={`延迟 ${pingAvg.current_ms < 0 ? '超时' : `${pingAvg.current_ms.toFixed(0)} ms`} · 丢包 ${pingAvg.loss_pct.toFixed(1)}%`}>
+              <Gauge size={12} />
+              {pingAvg.current_ms < 0 ? '超时' : `${pingAvg.current_ms.toFixed(0)}ms`}
+            </span>
+          )}
+        </div>
+      )}
     </article>
   )
 }
@@ -860,6 +917,7 @@ const EXTRA_LICENSE_BADGES = [
 export function App() {
   const { data, error } = useProbe()
   const [view, setView] = useState<'card' | 'list' | 'mini'>(() => (localStorage.getItem('probe-view') as 'card' | 'list' | 'mini') || 'card')
+  const [miniExpanded, setMiniExpanded] = useState<boolean>(() => localStorage.getItem('probe-mini-expanded') === '1')
   const [filter, setFilter] = useState<'all' | 'online' | 'offline' | 'expiring' | 'expired' | 'renewal'>('all')
   const [region, setRegion] = useState('all')
   const [search, setSearch] = useState('')
@@ -904,6 +962,13 @@ export function App() {
   const setMode = (next: 'card' | 'list' | 'mini') => {
     setView(next)
     localStorage.setItem('probe-view', next)
+  }
+  const toggleMiniExpanded = () => {
+    setMiniExpanded((prev) => {
+      const next = !prev
+      localStorage.setItem('probe-mini-expanded', next ? '1' : '0')
+      return next
+    })
   }
   if (!data && !error)
     return (
@@ -954,8 +1019,8 @@ export function App() {
           <button aria-label="卡片视图" title="卡片视图" className={view === 'card' ? 'active' : ''} onClick={() => setMode('card')}>
             <LayoutGrid size={18} />
           </button>
-          <button aria-label="极简卡片视图" title="极简卡片视图" className={view === 'mini' ? 'active' : ''} onClick={() => setMode('mini')}>
-            <Rows3 size={18} />
+          <button aria-label={miniExpanded ? '极简卡片展开视图' : '极简卡片视图'} title={view === 'mini' ? (miniExpanded ? '极简卡片展开视图（再点收起）' : '极简卡片视图（再点展开多行）') : '极简卡片视图'} className={view === 'mini' ? 'active' : ''} onClick={() => { if (view === 'mini') { toggleMiniExpanded() } else { setMode('mini') } }}>
+            {miniExpanded ? <Rows4 size={18} /> : <Rows3 size={18} />}
           </button>
           <button aria-label="列表视图" title="列表视图" className={view === 'list' ? 'active' : ''} onClick={() => setMode('list')}>
             <List size={18} />
@@ -1084,7 +1149,7 @@ export function App() {
           </label>
         </div>
       </section>
-      <main className={`servers ${view}`}>{visible.length ? view === 'card' ? visible.map((server) => <ServerCard key={server.name} server={server} index={servers.indexOf(server)} />) : view === 'mini' ? visible.map((server) => <ServerMiniCard key={server.name} server={server} index={servers.indexOf(server)} />) : <ServerTable servers={visible} /> : <div className="empty">暂无符合条件的服务器</div>}</main>
+      <main className={`servers ${view}`}>{visible.length ? view === 'card' ? visible.map((server) => <ServerCard key={server.name} server={server} index={servers.indexOf(server)} />) : view === 'mini' ? visible.map((server) => <ServerMiniCard key={server.name} server={server} index={servers.indexOf(server)} expanded={miniExpanded} />) : <ServerTable servers={visible} /> : <div className="empty">暂无符合条件的服务器</div>}</main>
       <footer>
         Powered by{' '}
         <a href="https://github.com/mmwx-group" target="_blank" rel="noreferrer">
