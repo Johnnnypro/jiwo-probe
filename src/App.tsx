@@ -693,6 +693,12 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
               {traffic}
             </span>
           )}
+          {server.renewal_price !== undefined && (
+            <span title={`续费 ${server.renewal_price_cny !== undefined ? `¥${server.renewal_price_cny.toFixed(2)}` : `${server.renewal_currency || 'CNY'} ${server.renewal_price}`} / ${cycleLabel[server.renewal_cycle || 'month']}`}>
+              <Wallet size={12} />
+              {server.renewal_price_cny !== undefined ? `¥${server.renewal_price_cny.toFixed(0)}` : `${server.renewal_currency || 'CNY'} ${server.renewal_price}`}
+            </span>
+          )}
         </div>
       )}
       {expanded && (
@@ -720,6 +726,25 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
               <ArrowUp size={12} />
               {speed(server.upload_speed)}
             </span>
+          )}
+          {!!server.return_routes?.length && (
+            <>
+              {(() => {
+                const byCarrier = new Map(server.return_routes!.map((route) => [route.carrier, route]))
+                return (['telecom', 'unicom', 'mobile'] as const).map((carrier) => {
+                  const route = byCarrier.get(carrier)
+                  const detectedRouteType = displayReturnRoute(route?.route_type || 'Unknown')
+                  const routeType = carrier === 'telecom' && server.telecom_paid_peer && detectedRouteType === '163' ? '163 PP' : detectedRouteType
+                  const premium = goldRoutes.has(routeType.toUpperCase().replace(/[^A-Z0-9]/g, ''))
+                  return (
+                    <span key={carrier} className={premium ? 'mini-route gold' : 'mini-route'} title={route?.region ? `${route.region} · ${routeType}` : routeType}>
+                      <small>{routeCarrierLabels[carrier]}</small>
+                      <strong>{routeType}</strong>
+                    </span>
+                  )
+                })
+              })()}
+            </>
           )}
         </div>
       )}

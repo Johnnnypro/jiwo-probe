@@ -200,6 +200,25 @@ button {
   padding-top: 3px;
   border-top: none;
 }
+.mini-route {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.mini-route small {
+  opacity: 0.7;
+}
+.mini-route strong {
+  font-weight: 600;
+}
+.mini-route.gold {
+  color: #d6a514;
+}
+:root.dark .mini-route.gold {
+  color: #f5c542;
+}
 .mini-detail svg {
   flex: none;
   opacity: 0.75;
