@@ -661,6 +661,23 @@ button {
   font-weight: 500;
   white-space: nowrap;
 }
+.server-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+.server-table th.sortable:hover {
+  color: var(--foreground);
+}
+.server-table th.sorted {
+  color: var(--accent, #8b5cf6);
+}
+.server-table th .sort-arrow {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 9px;
+  vertical-align: 1px;
+}
 .server-table td {
   padding: 13px 14px;
   border-top: 1px solid var(--border);

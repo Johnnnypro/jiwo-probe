@@ -494,25 +494,84 @@ function TablePing({ ping, serverIndex }: { ping?: ProbePingSeries[]; serverInde
   )
 }
 
+type SortKey = 'name' | 'online' | 'cpu' | 'memory' | 'disk' | 'speed' | 'traffic' | 'ping'
+type SortDir = 'asc' | 'desc'
+
+function sortValue(server: ProbeServer, key: SortKey): number | string {
+  switch (key) {
+    case 'name':
+      return server.name || ''
+    case 'online':
+      return server.online ? 1 : 0
+    case 'cpu':
+      return server.cpu_pct ?? -1
+    case 'memory':
+      return server.mem_total ? pct(server.mem_used, server.mem_total) : -1
+    case 'disk':
+      return server.disk_total ? pct(server.disk_used, server.disk_total) : -1
+    case 'speed':
+      return server.download_speed ?? -1
+    case 'traffic':
+      return server.traffic_limit ? pct(server.traffic_used, server.traffic_limit) : (server.traffic_used ?? -1)
+    case 'ping':
+      return averagePing(server.ping || []).current_ms
+  }
+}
+
 function ServerTable({ servers }: { servers: ProbeServer[] }) {
+  const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+
+  const rows = useMemo(() => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    return servers
+      .map((server, index) => ({ server, index }))
+      .sort((a, b) => {
+        const va = sortValue(a.server, sortKey)
+        const vb = sortValue(b.server, sortKey)
+        if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * dir
+        return ((va as number) - (vb as number)) * dir
+      })
+  }, [servers, sortKey, sortDir])
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'name' ? 'asc' : 'desc')
+    }
+  }
+
+  const sortHeader = (label: string, key: SortKey) => (
+    <th
+      className={key === sortKey ? `sortable sorted ${sortDir}` : 'sortable'}
+      aria-sort={key === sortKey ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      onClick={() => toggleSort(key)}
+    >
+      {label}
+      {key === sortKey && <span className="sort-arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
+    </th>
+  )
+
   return (
     <section className="server-table-wrap">
       <div className="table-scroll">
         <table className="server-table">
           <thead>
             <tr>
-              <th>服务器</th>
-              <th>状态</th>
-              <th>CPU</th>
-              <th>内存</th>
-              <th>硬盘</th>
-              <th>网速</th>
-              <th>流量</th>
-              <th>延迟</th>
+              {sortHeader('服务器', 'name')}
+              {sortHeader('状态', 'online')}
+              {sortHeader('CPU', 'cpu')}
+              {sortHeader('内存', 'memory')}
+              {sortHeader('硬盘', 'disk')}
+              {sortHeader('网速', 'speed')}
+              {sortHeader('流量', 'traffic')}
+              {sortHeader('延迟', 'ping')}
             </tr>
           </thead>
           <tbody>
-            {servers.map((server, index) => {
+            {rows.map(({ server, index }) => {
               const memory = server.mem_total ? pct(server.mem_used, server.mem_total) : undefined
               const disk = server.disk_total ? pct(server.disk_used, server.disk_total) : undefined
               return (
