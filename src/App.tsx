@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Search, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
@@ -204,6 +204,74 @@ export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
     loss_pct: series.length ? series.reduce((sum, item) => sum + item.loss_pct, 0) / series.length : 0,
     buckets,
   }
+}
+
+type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'ping'
+
+const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactNode }[] = [
+  { key: 'cpu', label: 'CPU', icon: <Cpu size={13} /> },
+  { key: 'mem', label: '内存', icon: <MemoryStick size={13} /> },
+  { key: 'traffic', label: '流量', icon: <PieChart size={13} /> },
+  { key: 'ping', label: '延迟', icon: <Gauge size={13} /> },
+]
+
+function Leaderboard({ servers }: { servers: ProbeServer[] }) {
+  const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<LeaderboardKey>('cpu')
+  const rows = useMemo(() => {
+    const indexed = servers.map((server, index) => {
+      const avg = averagePing(server.ping || [])
+      const value =
+        tab === 'cpu' ? server.cpu_pct ?? -1 : tab === 'mem' ? pct(server.mem_used, server.mem_total) : tab === 'traffic' ? server.traffic_used ?? -1 : avg.current_ms
+      return { server, index, value }
+    })
+    return indexed
+      .filter((row) => row.value >= 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10)
+  }, [servers, tab])
+  const format = (value: number) =>
+    tab === 'cpu' || tab === 'mem' ? `${value.toFixed(1)}%` : tab === 'traffic' ? bytes(value, false) : `${value.toFixed(0)} ms`
+  return (
+    <section className={`leaderboard-card ${open ? 'open' : ''}`}>
+      <button className="globe-toggle" type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <span>
+          <Trophy size={18} />
+          多维榜单
+        </span>
+        <span>
+          Top 10
+          <ChevronDown size={17} />
+        </span>
+      </button>
+      {open && (
+        <div className="leaderboard-body">
+          <div className="leaderboard-tabs">
+            {LEADERBOARD_TABS.map((item) => (
+              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => setTab(item.key)}>
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <ol className="leaderboard-list">
+            {rows.map(({ server, index, value }, rank) => (
+              <li key={`${server.name}-${index}`}>
+                <button type="button" onClick={() => (location.hash = `#/server/${index}`)}>
+                  <span className="rank">{rank + 1}</span>
+                  <span className="lb-name">
+                    {regionFlag(server.region) && !hasLeadingFlag(server.name || '') ? `${regionFlag(server.region)} ${server.name}` : server.name}
+                  </span>
+                  <span className="lb-value">{format(value)}</span>
+                </button>
+              </li>
+            ))}
+            {!rows.length && <li className="lb-empty">暂无数据</li>}
+          </ol>
+        </div>
+      )}
+    </section>
+  )
 }
 
 function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { serverIndex: number; initial: ProbePingSeries[]; targetKey: string; title: string; mode: 'latency' | 'loss'; close: () => void }) {
@@ -819,25 +887,28 @@ export function App() {
         )}
         <AssetsSummary servers={servers} />
       </section>
-      {data.show_globe && regions.length > 0 && (
-        <section className={`globe-card ${globeOpen ? 'open' : ''}`}>
-          <button className="globe-toggle" type="button" aria-expanded={globeOpen} onClick={() => setGlobeOpen((value) => !value)}>
-            <span>
-              <Globe2 size={18} />
-              地区分布
-            </span>
-            <span>
-              {regions.length} 个地区
-              <ChevronDown size={17} />
-            </span>
-          </button>
-          {globeOpen && (
-            <Suspense fallback={<div className="globe-loading">正在加载国界数据…</div>}>
-              <RegionGlobe regions={servers.map((server) => server.region || '').filter(Boolean)} />
-            </Suspense>
-          )}
-        </section>
-      )}
+      <div className="globe-row">
+        {data.show_globe && regions.length > 0 && (
+          <section className={`globe-card ${globeOpen ? 'open' : ''}`}>
+            <button className="globe-toggle" type="button" aria-expanded={globeOpen} onClick={() => setGlobeOpen((value) => !value)}>
+              <span>
+                <Globe2 size={18} />
+                地区分布
+              </span>
+              <span>
+                {regions.length} 个地区
+                <ChevronDown size={17} />
+              </span>
+            </button>
+            {globeOpen && (
+              <Suspense fallback={<div className="globe-loading">正在加载国界数据…</div>}>
+                <RegionGlobe regions={servers.map((server) => server.region || '').filter(Boolean)} />
+              </Suspense>
+            )}
+          </section>
+        )}
+        <Leaderboard servers={servers} />
+      </div>
       <section className="probe-toolbar">
         <div className="filters">
           <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>
