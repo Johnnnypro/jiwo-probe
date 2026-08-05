@@ -1629,6 +1629,18 @@ footer a:hover {
   }
 }
 @media (max-width: 760px) {
+  .probe-license-footer {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+  .probe-license-footer::-webkit-scrollbar {
+    display: none;
+  }
+  .probe-license-nameplate {
+    flex-shrink: 0;
+  }
   .globe-toggle {
     padding-inline: 13px;
   }
