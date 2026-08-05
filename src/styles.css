@@ -1493,13 +1493,13 @@ footer a:hover {
   inset: 0;
   z-index: 60;
   overflow-y: auto;
-  padding: 24px;
+  padding: 12px;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(3px);
 }
 .server-detail {
   position: relative;
-  width: min(920px, 100%);
+  width: min(980px, 100%);
   margin: 0 auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1510,7 +1510,7 @@ footer a:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 18px;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -1546,7 +1546,7 @@ footer a:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 .detail-online,
 .detail-offline {
@@ -1566,17 +1566,17 @@ footer a:hover {
 .server-detail-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px;
+  gap: 10px;
+  padding: 12px 14px 14px;
 }
 .detail-panel {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 10px 12px;
   background: var(--surface-elevated, var(--surface));
 }
 .detail-panel h3 {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-size: 13px;
   color: var(--muted);
   font-weight: 600;
@@ -1584,32 +1584,44 @@ footer a:hover {
 }
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px 22px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+.detail-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.detail-col-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 .detail-metric-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 .detail-metric-head span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 .detail-metric-head strong {
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
 }
 .detail-loadavg {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 13px;
+  margin-top: 9px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -1623,16 +1635,16 @@ footer a:hover {
 .detail-speed {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 13px;
+  gap: 6px;
+  margin-top: 9px;
 }
 .detail-speed > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
+  padding: 3px 9px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 .detail-speed .download {
@@ -1646,14 +1658,14 @@ footer a:hover {
 .detail-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 6px 14px;
 }
 .detail-meta > span,
 .detail-meta > a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--foreground);
 }
 .detail-meta > a {
@@ -1688,13 +1700,13 @@ footer a:hover {
 }
 .detail-chart {
   position: relative;
-  height: 340px;
+  height: 280px;
 }
 .server-detail .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-top: 12px;
+  gap: 3px 12px;
+  margin-top: 8px;
 }
 .server-detail .legend span {
   display: inline-flex;
@@ -1714,20 +1726,23 @@ footer a:hover {
 }
 @media (max-width: 640px) {
   .server-detail-backdrop {
-    padding: 8px;
+    padding: 6px;
   }
   .server-detail-body {
-    padding: 12px;
+    padding: 10px;
+  }
+  .detail-cols {
+    grid-template-columns: 1fr;
   }
   .detail-chart {
-    height: 260px;
+    height: 220px;
   }
 }
 
 /* ===== 剩余价值 ===== */
 .detail-value {
-  margin-top: 14px;
-  padding: 13px 15px;
+  margin-top: 10px;
+  padding: 9px 11px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   background: var(--surface-elevated, var(--surface));
@@ -1735,7 +1750,7 @@ footer a:hover {
 .detail-value-main {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 7px;
   flex-wrap: wrap;
 }
 .detail-value-main > span {
@@ -1746,7 +1761,7 @@ footer a:hover {
   font-size: 12px;
 }
 .detail-value-main strong {
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--accent, #8b5cf6);
@@ -1758,11 +1773,11 @@ footer a:hover {
 .detail-value-sub {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  margin-top: 8px;
+  gap: 4px 14px;
+  margin-top: 6px;
   color: var(--muted);
   font-size: 12px;
 }
 .detail-value .meter {
-  margin-top: 10px;
+  margin-top: 7px;
 }

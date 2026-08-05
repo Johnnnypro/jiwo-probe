@@ -226,86 +226,90 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
         </header>
 
         <div className="server-detail-body">
-          <section className="detail-panel">
-            <h3>资源占用</h3>
-            <div className="detail-grid">
-              {server.cpu_pct !== undefined && <DetailMetric icon={<Cpu size={15} />} label="CPU" value={`${server.cpu_pct.toFixed(1)}%`} percent={server.cpu_pct} />}
-              {server.mem_total !== undefined && <DetailMetric icon={<MemoryStick size={15} />} label="内存" value={`${bytes(server.mem_used)} / ${bytes(server.mem_total)}`} percent={pct(server.mem_used, server.mem_total)} />}
-              {server.disk_total !== undefined && <DetailMetric icon={<HardDrive size={15} />} label="硬盘" value={`${bytes(server.disk_used)} / ${bytes(server.disk_total)}`} percent={pct(server.disk_used, server.disk_total)} />}
-              {server.traffic_used !== undefined && (
-                <DetailMetric
-                  icon={<PieChart size={15} />}
-                  label="流量"
-                  value={server.traffic_limit ? `${bytes(server.traffic_used, false)} / ${bytes(server.traffic_limit, false)}` : bytes(server.traffic_used, false)}
-                  percent={pct(server.traffic_used, server.traffic_limit)}
-                />
+          <div className="detail-cols">
+            <section className="detail-panel">
+              <h3>资源占用</h3>
+              <div className="detail-grid">
+                {server.cpu_pct !== undefined && <DetailMetric icon={<Cpu size={15} />} label="CPU" value={`${server.cpu_pct.toFixed(1)}%`} percent={server.cpu_pct} />}
+                {server.mem_total !== undefined && <DetailMetric icon={<MemoryStick size={15} />} label="内存" value={`${bytes(server.mem_used)} / ${bytes(server.mem_total)}`} percent={pct(server.mem_used, server.mem_total)} />}
+                {server.disk_total !== undefined && <DetailMetric icon={<HardDrive size={15} />} label="硬盘" value={`${bytes(server.disk_used)} / ${bytes(server.disk_total)}`} percent={pct(server.disk_used, server.disk_total)} />}
+                {server.traffic_used !== undefined && (
+                  <DetailMetric
+                    icon={<PieChart size={15} />}
+                    label="流量"
+                    value={server.traffic_limit ? `${bytes(server.traffic_used, false)} / ${bytes(server.traffic_limit, false)}` : bytes(server.traffic_used, false)}
+                    percent={pct(server.traffic_used, server.traffic_limit)}
+                  />
+                )}
+              </div>
+              {server.loadavg && (
+                <div className="detail-loadavg">
+                  <Activity size={14} />
+                  负载: <code>{server.loadavg}</code>
+                </div>
+              )}
+              {(server.upload_speed !== undefined || server.download_speed !== undefined) && (
+                <div className="detail-speed">
+                  <span className="download">
+                    <ArrowDown size={16} />
+                    下行 {speed(server.download_speed)}
+                  </span>
+                  <span className="upload">
+                    <ArrowUp size={16} />
+                    上行 {speed(server.upload_speed)}
+                  </span>
+                </div>
+              )}
+            </section>
+
+            <div className="detail-col-stack">
+              {(server.expires_at || server.renewal_price !== undefined) && (
+                <section className="detail-panel">
+                  <h3>到期与续费</h3>
+                  <div className="detail-meta">
+                    {server.expires_at &&
+                      (server.provider_url ? (
+                        <a href={server.provider_url} target="_blank" rel="noopener noreferrer" className={expiring(server) || expired(server) ? 'warning' : ''} title={server.provider_name ? `前往 ${server.provider_name} 续费` : '前往服务商续费'}>
+                          <CalendarClock size={13} />
+                          {remainingDays(server.expires_at)}
+                          <small>{server.expires_at}</small>
+                        </a>
+                      ) : (
+                        <span className={expiring(server) || expired(server) ? 'warning' : ''}>
+                          <CalendarClock size={13} />
+                          {remainingDays(server.expires_at)}
+                          <small>{server.expires_at}</small>
+                        </span>
+                      ))}
+                    {server.renewal_price !== undefined && (
+                      <span>
+                        <Wallet size={13} />
+                        {server.renewal_price_cny !== undefined ? `¥${server.renewal_price_cny.toFixed(2)}` : `${server.renewal_currency || 'CNY'} ${server.renewal_price}`} / {cycleLabel[server.renewal_cycle || 'month']}
+                        {server.renewal_price_cny !== undefined && server.renewal_currency !== 'CNY' && <small>（{server.renewal_currency} {server.renewal_price}）</small>}
+                      </span>
+                    )}
+                    {server.provider_name && (
+                      <span>
+                        <Wifi size={13} />
+                        服务商: {server.provider_name}
+                      </span>
+                    )}
+                  </div>
+                  <RemainingValueBlock server={server} />
+                </section>
+              )}
+
+              {!!server.return_routes?.length && (
+                <section className="detail-panel">
+                  <h3>回程路由</h3>
+                  <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} />
+                </section>
               )}
             </div>
-            {server.loadavg && (
-              <div className="detail-loadavg">
-                <Activity size={14} />
-                负载: <code>{server.loadavg}</code>
-              </div>
-            )}
-            {(server.upload_speed !== undefined || server.download_speed !== undefined) && (
-              <div className="detail-speed">
-                <span className="download">
-                  <ArrowDown size={16} />
-                  下行 {speed(server.download_speed)}
-                </span>
-                <span className="upload">
-                  <ArrowUp size={16} />
-                  上行 {speed(server.upload_speed)}
-                </span>
-              </div>
-            )}
-          </section>
-
-          {(server.expires_at || server.renewal_price !== undefined) && (
-            <section className="detail-panel">
-              <h3>到期与续费</h3>
-              <div className="detail-meta">
-                {server.expires_at &&
-                  (server.provider_url ? (
-                    <a href={server.provider_url} target="_blank" rel="noopener noreferrer" className={expiring(server) || expired(server) ? 'warning' : ''} title={server.provider_name ? `前往 ${server.provider_name} 续费` : '前往服务商续费'}>
-                      <CalendarClock size={13} />
-                      {remainingDays(server.expires_at)}
-                      <small>{server.expires_at}</small>
-                    </a>
-                  ) : (
-                    <span className={expiring(server) || expired(server) ? 'warning' : ''}>
-                      <CalendarClock size={13} />
-                      {remainingDays(server.expires_at)}
-                      <small>{server.expires_at}</small>
-                    </span>
-                  ))}
-                {server.renewal_price !== undefined && (
-                  <span>
-                    <Wallet size={13} />
-                    {server.renewal_price_cny !== undefined ? `¥${server.renewal_price_cny.toFixed(2)}` : `${server.renewal_currency || 'CNY'} ${server.renewal_price}`} / {cycleLabel[server.renewal_cycle || 'month']}
-                    {server.renewal_price_cny !== undefined && server.renewal_currency !== 'CNY' && <small>（{server.renewal_currency} {server.renewal_price}）</small>}
-                  </span>
-                )}
-                {server.provider_name && (
-                  <span>
-                    <Wifi size={13} />
-                    服务商: {server.provider_name}
-                  </span>
-                )}
-              </div>
-              <RemainingValueBlock server={server} />
-            </section>
-          )}
-
-          {!!server.return_routes?.length && (
-            <section className="detail-panel">
-              <h3>回程路由</h3>
-              <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} />
-            </section>
-          )}
+          </div>
 
           {!!ping.length && (
-            <section className="detail-panel">
+            <section className="detail-panel detail-panel-wide">
               <h3>延迟趋势</h3>
               <div className="detail-ping-picker">
                 <Wifi size={14} />
