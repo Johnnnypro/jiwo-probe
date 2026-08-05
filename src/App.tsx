@@ -725,6 +725,12 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
               {server.renewal_price_cny !== undefined ? `¥${server.renewal_price_cny.toFixed(0)}` : `${server.renewal_currency || 'CNY'} ${server.renewal_price}`}
             </span>
           )}
+          {server.expires_at && (
+            <span className={expiring(server) || expired(server) ? 'mini-due' : ''} title={`到期 ${server.expires_at}`}>
+              <CalendarClock size={12} />
+              {server.expires_at}
+            </span>
+          )}
         </div>
       )}
       {expanded && (

@@ -193,6 +193,9 @@ button {
 .mini-detail .mini-loss {
   color: #dc2626;
 }
+.mini-detail .mini-due {
+  color: #dc2626;
+}
 .mini-resources {
   font-size: 10px;
 }
