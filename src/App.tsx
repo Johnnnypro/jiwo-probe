@@ -116,21 +116,45 @@ export function regionCountryLabel(server: ProbeServer): string {
 
 function RegionSelect({ regions, value, onChange }: { regions: string[]; value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
   const wrapRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const close = useCallback(() => setOpen(false), [])
+  const toggle = useCallback(() => {
+    if (!open && wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect()
+      const estHeight = Math.min(320, regions.length * 29 + 10)
+      let top = rect.bottom + 5
+      if (top + estHeight > window.innerHeight - 8 && rect.top - estHeight - 5 > 0) {
+        top = rect.top - estHeight - 5
+      }
+      setPos({ top, left: rect.left, width: rect.width })
+    }
+    setOpen((v) => !v)
+  }, [open, regions.length])
 
   useEffect(() => {
     if (!open) return
     const handle = (event: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false)
+      if (wrapRef.current?.contains(event.target as Node)) return
+      if (menuRef.current?.contains(event.target as Node)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [open])
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', handle)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open, close])
 
   const selected = value === 'all' ? null : value
   return (
     <div className="region-select" ref={wrapRef}>
-      <button type="button" className="region-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <button type="button" className="region-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={toggle}>
         <MapPin size={14} />
         <span className="region-trigger-value">
           <Twemoji>{selected || '🌍'}</Twemoji>
@@ -138,20 +162,22 @@ function RegionSelect({ regions, value, onChange }: { regions: string[]; value: 
         </span>
         <ChevronDown size={13} className={open ? 'rotated' : ''} />
       </button>
-      {open && (
-        <div className="region-menu" role="listbox">
-          <button type="button" role="option" aria-selected={value === 'all'} onClick={() => { onChange('all'); setOpen(false) }}>
-            <Twemoji>🌍</Twemoji>
-            <span>全部地区</span>
-          </button>
-          {regions.map((item) => (
-            <button type="button" role="option" aria-selected={value === item} key={item} onClick={() => { onChange(item); setOpen(false) }}>
-              <Twemoji>{item}</Twemoji>
-              <span>{item}</span>
+      {open &&
+        createPortal(
+          <div className="region-menu" ref={menuRef} style={{ top: pos.top, left: pos.left, minWidth: pos.width }} role="listbox">
+            <button type="button" role="option" aria-selected={value === 'all'} onClick={() => { onChange('all'); setOpen(false) }}>
+              <Twemoji>🌍</Twemoji>
+              <span>全部地区</span>
             </button>
-          ))}
-        </div>
-      )}
+            {regions.map((item) => (
+              <button type="button" role="option" aria-selected={value === item} key={item} onClick={() => { onChange(item); setOpen(false) }}>
+                <Twemoji>{item}</Twemoji>
+                <span>{item}</span>
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -535,7 +561,6 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
         <h2>
           <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
         </h2>
-        {regionLabel(server) && <small className="server-region">{regionLabel(server)}</small>}
         <span>
           {server.online ? '在线' : '离线'}
           <i className="detail-hint">详情 ›</i>

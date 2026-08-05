@@ -345,18 +345,6 @@ button {
   color: var(--muted);
   font-size: 12px;
 }
-.server-title .server-region {
-  display: inline-flex;
-  flex: 0 1 auto;
-  min-width: 0;
-  align-items: center;
-  gap: 3px;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .emoji {
   width: 1em;
   height: 1em;
@@ -1486,11 +1474,10 @@ footer a:hover {
   transition: transform 0.15s;
 }
 .region-menu {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 0;
-  z-index: 50;
-  min-width: 150px;
+  position: fixed;
+  z-index: 1000;
+  max-height: min(320px, calc(100vh - 24px));
+  overflow-y: auto;
   padding: 5px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
