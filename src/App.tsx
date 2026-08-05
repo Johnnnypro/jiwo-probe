@@ -960,7 +960,7 @@ export function App() {
             <label className="region-filter">
               <MapPin size={14} />
               <select aria-label="地区筛选" value={region} onChange={(event) => setRegion(event.target.value)}>
-                <option value="all">全部地区</option>
+                <option value="all">🌍 全部地区</option>
                 {regions.map((item) => (
                   <option value={item} key={item}>
                     {item}
