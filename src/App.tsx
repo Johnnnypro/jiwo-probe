@@ -1,12 +1,13 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowUp, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
 import { Twemoji } from './Twemoji'
 import { ServerDetail } from './ServerDetail'
+import { computeRemainingValue, formatMoney } from './value'
 import commonRouteAnimation from './assets/return-route/common.json'
 import premiumRouteAnimation from './assets/return-route/premium.json'
 
@@ -119,6 +120,48 @@ function SpeedSummary({ label, value, direction }: { label: string; value: numbe
         <small>{scale.label}</small>
       </div>
     </div>
+  )
+}
+
+function AssetsSummary({ servers }: { servers: ProbeServer[] }) {
+  const stats = useMemo(() => {
+    let totalValue = 0
+    let totalMonthly = 0
+    let priced = 0
+    for (const server of servers) {
+      const rv = computeRemainingValue(server)
+      if (!rv) continue
+      priced++
+      totalValue += rv.value
+      totalMonthly += rv.daily * 30
+    }
+    return { totalValue, totalMonthly, priced }
+  }, [servers])
+  if (stats.priced === 0) return null
+  return (
+    <article className="summary-card">
+      <header>
+        <span>
+          <BadgeDollarSign size={18} />
+          资产总揽
+        </span>
+        <small>按剩余天数折算</small>
+      </header>
+      <div className="assets-stats">
+        <div className="assets-main">
+          <span>总剩余价值</span>
+          <strong>{formatMoney(stats.totalValue, 'CNY', true)}</strong>
+        </div>
+        <div className="assets-sub">
+          <span>
+            月均成本 <b>{formatMoney(stats.totalMonthly, 'CNY', true)}</b>
+          </span>
+          <span>
+            覆盖 <b>{stats.priced}</b> / {servers.length} 台
+          </span>
+        </div>
+      </div>
+    </article>
   )
 }
 export function pct(used = 0, total = 0): number {
@@ -698,6 +741,7 @@ export function App() {
             </div>
           </article>
         )}
+        <AssetsSummary servers={servers} />
       </section>
       {data.show_globe && regions.length > 0 && (
         <section className={`globe-card ${globeOpen ? 'open' : ''}`}>

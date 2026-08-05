@@ -129,7 +129,7 @@ button {
 }
 .dashboard-summary {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
 }
 .summary-card,
@@ -1780,4 +1780,41 @@ footer a:hover {
 }
 .detail-value .meter {
   margin-top: 7px;
+}
+
+/* ===== 资产总揽 ===== */
+.assets-stats {
+  display: grid;
+  gap: 10px;
+}
+.assets-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--page-bg) 72%, var(--surface));
+}
+.assets-main span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.assets-main strong {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--accent, #8b5cf6);
+}
+.assets-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.assets-sub b {
+  color: var(--foreground);
+  font-weight: 600;
 }
