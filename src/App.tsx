@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
 import { Activity, ArrowDown, ArrowUp, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
@@ -6,6 +6,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
 import { Twemoji } from './Twemoji'
+import { ServerDetail } from './ServerDetail'
 import commonRouteAnimation from './assets/return-route/common.json'
 import premiumRouteAnimation from './assets/return-route/premium.json'
 
@@ -30,7 +31,7 @@ const ranges = [
 ] as const
 type RangeKey = (typeof ranges)[number]['key']
 
-function bytes(value = 0, decimal = true): string {
+export function bytes(value = 0, decimal = true): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let n = Math.max(0, value)
   let i = 0
@@ -41,7 +42,7 @@ function bytes(value = 0, decimal = true): string {
   return `${n.toFixed(decimal && i >= 2 ? 1 : 0)} ${units[i]}`
 }
 
-function speed(value = 0): string {
+export function speed(value = 0): string {
   return `${bytes(value)}/s`
 }
 function bitSpeed(bytesPerSecond = 0): string {
@@ -73,22 +74,22 @@ const cycleLabel = {
   half_year: '半年',
   year: '年',
 } as const
-function expiring(server: ProbeServer): boolean {
+export function expiring(server: ProbeServer): boolean {
   if (!server.expires_at) return false
   const days = (new Date(`${server.expires_at}T23:59:59`).getTime() - Date.now()) / 86400000
   return days >= 0 && days <= 30
 }
-function expired(server: ProbeServer): boolean {
+export function expired(server: ProbeServer): boolean {
   return !!server.expires_at && new Date(`${server.expires_at}T23:59:59`).getTime() < Date.now()
 }
-function remainingDays(value?: string): string {
+export function remainingDays(value?: string): string {
   if (!value) return ''
   const days = Math.ceil((new Date(`${value}T23:59:59`).getTime() - Date.now()) / 86400000)
   if (days < 0) return `已过期 ${Math.abs(days)} 天`
   if (days === 0) return '今天到期'
   return `剩余 ${days} 天`
 }
-function regionFlag(region?: string): string {
+export function regionFlag(region?: string): string {
   const points = [...(region?.trim() || '')].map((char) => char.codePointAt(0) || 0)
   if (points.length === 2 && points.every((point) => point >= 0x1f1e6 && point <= 0x1f1ff)) return region!.trim()
   const country = region
@@ -98,7 +99,7 @@ function regionFlag(region?: string): string {
   if (!country || !/^[A-Z]{2}$/.test(country)) return ''
   return String.fromCodePoint(...[...country].map((char) => 0x1f1e6 + char.charCodeAt(0) - 65))
 }
-function hasLeadingFlag(value: string): boolean {
+export function hasLeadingFlag(value: string): boolean {
   return /^\p{Regional_Indicator}{2}/u.test(value.trim())
 }
 
@@ -120,11 +121,11 @@ function SpeedSummary({ label, value, direction }: { label: string; value: numbe
     </div>
   )
 }
-function pct(used = 0, total = 0): number {
+export function pct(used = 0, total = 0): number {
   return total > 0 ? Math.min(100, (used * 100) / total) : 0
 }
 
-function Meter({ icon, label, value, percent }: { icon: React.ReactNode; label: string; value: string; percent: number }) {
+export function Meter({ icon, label, value, percent }: { icon: React.ReactNode; label: string; value: string; percent: number }) {
   return (
     <div className="metric">
       <div className="metric-head">
@@ -141,7 +142,7 @@ function Meter({ icon, label, value, percent }: { icon: React.ReactNode; label: 
   )
 }
 
-function averagePing(series: ProbePingSeries[]): ProbePingSeries {
+export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
   const count = series[0]?.buckets.length || 0
   const buckets: ProbeBucket[] = Array.from({ length: count }, (_, index) => {
     const values = series.map((item) => item.buckets[index]).filter(Boolean)
@@ -277,7 +278,7 @@ function PingPanel({ ping, serverIndex }: { ping: ProbePingSeries[]; serverIndex
       return <i key={index} className={level} />
     })
   return (
-    <>
+    <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <div className="ping-grid">
         <div className="ping-head">
           <span>
@@ -308,7 +309,7 @@ function PingPanel({ ping, serverIndex }: { ping: ProbePingSeries[]; serverIndex
         </button>
       </div>
       {mode && <TrendDialog serverIndex={serverIndex} initial={lines} targetKey={selected} title={current.label} mode={mode} close={() => setMode(null)} />}
-    </>
+    </div>
   )
 }
 
@@ -326,7 +327,7 @@ function ReturnRouteIcon({ premium }: { premium: boolean }) {
   return <Lottie animationData={premium ? premiumRouteAnimation : commonRouteAnimation} aria-hidden="true" className="route-badge-icon" loop />
 }
 
-function ReturnRouteBadges({ routes, telecomPaidPeer }: { routes: ProbeReturnRoute[]; telecomPaidPeer?: boolean }) {
+export function ReturnRouteBadges({ routes, telecomPaidPeer }: { routes: ProbeReturnRoute[]; telecomPaidPeer?: boolean }) {
   const byCarrier = new Map(routes.map((route) => [route.carrier, route]))
   return (
     <div className="return-route-badges">
@@ -353,13 +354,16 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   return (
-    <article className="server-card">
+    <article className="server-card" onClick={() => { location.hash = `#/server/${index}` }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.hash = `#/server/${index}` } }} title="点击查看详情">
       <div className="server-title">
         <span className={server.online ? 'status online' : 'status'} />
         <h2>
           <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
         </h2>
-        <span>{server.online ? '在线' : '离线'}</span>
+        <span>
+          {server.online ? '在线' : '离线'}
+          <i className="detail-hint">详情 ›</i>
+        </span>
       </div>
       <div className="metrics">
         {server.cpu_pct !== undefined && <Meter icon={<Cpu size={14} />} label="CPU" value={`${server.cpu_pct.toFixed(1)}%`} percent={server.cpu_pct} />}
@@ -382,7 +386,7 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
       {!!server.ping?.length && <PingPanel ping={server.ping} serverIndex={index} />}
       {!!server.return_routes?.length && <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} />}
       {(server.expires_at || server.renewal_price !== undefined) && (
-        <div className="server-meta">
+        <div className="server-meta" onClick={(event) => event.stopPropagation()}>
           {server.expires_at &&
             (server.provider_url ? (
               <a href={server.provider_url} target="_blank" rel="noopener noreferrer" className={expiring(server) || expired(server) ? 'warning' : ''} title={server.provider_name ? `前往 ${server.provider_name} 续费` : '前往服务商续费'}>
@@ -431,7 +435,7 @@ function TablePing({ ping, serverIndex }: { ping?: ProbePingSeries[]; serverInde
   const lines = [{ ...average, key: '__avg__' }, ...ping]
   return (
     <>
-      <button className="table-ping" type="button" onClick={() => setOpen(true)}>
+      <button className="table-ping" type="button" onClick={(event) => { event.stopPropagation(); setOpen(true) }}>
         <span>
           <strong>{average.current_ms < 0 ? '超时' : `${average.current_ms.toFixed(0)} ms`}</strong>
           <b>{average.loss_pct.toFixed(1)}%</b>
@@ -469,13 +473,13 @@ function ServerTable({ servers }: { servers: ProbeServer[] }) {
               const memory = server.mem_total ? pct(server.mem_used, server.mem_total) : undefined
               const disk = server.disk_total ? pct(server.disk_used, server.disk_total) : undefined
               return (
-                <tr key={`${server.name}-${index}`}>
+                <tr key={`${server.name}-${index}`} className="table-row-link" onClick={() => { location.hash = `#/server/${index}` }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.hash = `#/server/${index}` } }}>
                   <td className="table-name">
                     <Twemoji>{server.name || `服务器 ${index + 1}`}</Twemoji>
                     {server.region && <small>{server.region}</small>}
                     {server.expires_at &&
                       (server.provider_url ? (
-                        <a href={server.provider_url} target="_blank" rel="noopener noreferrer" className={expiring(server) ? 'warning' : ''} title={server.provider_name ? `前往 ${server.provider_name} 续费` : '前往服务商续费'}>
+                        <a href={server.provider_url} target="_blank" rel="noopener noreferrer" className={expiring(server) ? 'warning' : ''} title={server.provider_name ? `前往 ${server.provider_name} 续费` : '前往服务商续费'} onClick={(event) => event.stopPropagation()}>
                           {server.expires_at}
                         </a>
                       ) : (
@@ -558,6 +562,23 @@ export function App() {
   const [globeOpen, setGlobeOpen] = useState(false)
   const [theme, setTheme] = useState<ThemeName | null>(() => getThemeOverride())
   const [darkMode, setDarkMode] = useState<string | null>(() => getDarkOverride())
+  const [detailIndex, setDetailIndex] = useState<number | null>(() => {
+    const match = /^#\/server\/(\d+)$/.exec(window.location.hash)
+    return match ? Number(match[1]) : null
+  })
+  useEffect(() => {
+    const onHashChange = () => {
+      const match = /^#\/server\/(\d+)$/.exec(window.location.hash)
+      setDetailIndex(match ? Number(match[1]) : null)
+      window.scrollTo(0, 0)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+  const closeDetail = useCallback(() => {
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+    setDetailIndex(null)
+  }, [])
   const isDark = darkMode === 'dark' || (darkMode === null && document.documentElement.classList.contains('dark'))
   const toggleDark = () => {
     const next = isDark ? 'light' : 'dark'
@@ -757,6 +778,13 @@ export function App() {
               ))
           })()}
         </div>
+      )}
+      {detailIndex !== null && servers[detailIndex] && (
+        <ServerDetail
+          server={servers[detailIndex]}
+          index={detailIndex}
+          onClose={closeDetail}
+        />
       )}
     </div>
   )
