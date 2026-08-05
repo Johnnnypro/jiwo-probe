@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Search, Server, Sun, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
@@ -661,6 +661,7 @@ export function App() {
   const [view, setView] = useState<'card' | 'list'>(() => (localStorage.getItem('probe-view') as 'card' | 'list') || 'card')
   const [filter, setFilter] = useState<'all' | 'online' | 'offline' | 'expiring' | 'expired' | 'renewal'>('all')
   const [region, setRegion] = useState('all')
+  const [search, setSearch] = useState('')
   const [globeOpen, setGlobeOpen] = useState(false)
   const [theme, setTheme] = useState<ThemeName | null>(() => getThemeOverride())
   const [darkMode, setDarkMode] = useState<string | null>(() => getDarkOverride())
@@ -727,9 +728,16 @@ export function App() {
   const renewalCount = servers.filter((server) => expiring(server) || expired(server)).length
   const regions = [...new Set(servers.map((server) => server.region?.trim()).filter((value): value is string => !!value))].sort((a, b) => a.localeCompare(b, 'zh-CN'))
   const hasExpiry = servers.some((server) => !!server.expires_at)
+  const query = search.trim().toLowerCase()
   const visible = servers.filter((server) => {
     const matchesStatus = filter === 'all' || (filter === 'online' && server.online) || (filter === 'offline' && !server.online) || (filter === 'expiring' && expiring(server)) || (filter === 'expired' && expired(server)) || (filter === 'renewal' && (expiring(server) || expired(server)))
-    return matchesStatus && (region === 'all' || server.region?.trim() === region)
+    if (!matchesStatus) return false
+    if (region !== 'all' && server.region?.trim() !== region) return false
+    if (query) {
+      const haystack = [server.name, server.region, server.region_name, server.region_city, server.region_country, server.provider_name].filter(Boolean).join(' ').toLowerCase()
+      if (!haystack.includes(query)) return false
+    }
+    return true
   })
   const hasSpeed = servers.some((server) => server.upload_speed !== undefined || server.download_speed !== undefined)
   const totalUpload = servers.reduce((sum, server) => sum + (server.upload_speed || 0), 0)
@@ -867,6 +875,16 @@ export function App() {
               </select>
             </label>
           )}
+          <label className="server-search">
+            <Search size={14} />
+            <input
+              type="search"
+              aria-label="搜索节点"
+              placeholder="搜索节点…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
         </div>
       </section>
       <main className={`servers ${view}`}>{visible.length ? view === 'card' ? visible.map((server) => <ServerCard key={server.name} server={server} index={servers.indexOf(server)} />) : <ServerTable servers={visible} /> : <div className="empty">暂无符合条件的服务器</div>}</main>
