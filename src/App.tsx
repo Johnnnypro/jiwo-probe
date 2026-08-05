@@ -103,6 +103,16 @@ export function regionFlag(region?: string): string {
 export function hasLeadingFlag(value: string): boolean {
   return /^\p{Regional_Indicator}{2}/u.test(value.trim())
 }
+export function regionLabel(server: ProbeServer): string {
+  const city = server.region_city?.trim()
+  const area = server.region_name?.trim()
+  const country = server.region_country?.trim()
+  if (!city && !area) return ''
+  return [city, area].filter(Boolean).join(' · ')
+}
+export function regionCountryLabel(server: ProbeServer): string {
+  return server.region_country?.trim() || ''
+}
 
 function SpeedSummary({ label, value, direction }: { label: string; value: number; direction: 'up' | 'down' }) {
   const scale = speedScale(value)
@@ -483,6 +493,7 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
         <h2>
           <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
         </h2>
+        {regionLabel(server) && <small className="server-region">{regionLabel(server)}</small>}
         <span>
           {server.online ? '在线' : '离线'}
           <i className="detail-hint">详情 ›</i>

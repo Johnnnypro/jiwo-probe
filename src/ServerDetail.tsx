@@ -4,7 +4,7 @@ import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, ChevronLe
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbePingSeries, ProbeServer } from './types'
 import { Twemoji } from './Twemoji'
-import { Meter, ReturnRouteBadges, averagePing, bytes, expiring, expired, hasLeadingFlag, pct, regionFlag, remainingDays, speed } from './App'
+import { Meter, ReturnRouteBadges, averagePing, bytes, expiring, expired, hasLeadingFlag, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
 import { computeRemainingValue, formatMoney } from './value'
 
 const cycleLabel = {
@@ -181,6 +181,7 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
             </h2>
             <span className={server.online ? 'detail-online' : 'detail-offline'}>{server.online ? '在线' : '离线'}</span>
           </div>
+          {regionLabel(server) && <div className="detail-region">{regionLabel(server)}</div>}
           <button aria-label="关闭" onClick={onClose}>
             <X size={18} />
           </button>

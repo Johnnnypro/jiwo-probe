@@ -1791,6 +1791,22 @@ footer a:hover {
   color: #dc2626;
   background: rgba(220, 38, 38, 0.12);
 }
+.detail-region {
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
+}
+@media (max-width: 480px) {
+  .detail-region {
+    max-width: 28%;
+    font-size: 11px;
+  }
+}
 .server-detail-body {
   display: flex;
   flex-direction: column;
