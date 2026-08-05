@@ -1152,7 +1152,7 @@ footer a:hover {
   }
 }
 .globe-card {
-  width: auto;
+  width: 100%;
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -1629,9 +1629,6 @@ footer a:hover {
   }
 }
 @media (max-width: 760px) {
-  .globe-card {
-    width: min(100% - 20px, 1600px);
-  }
   .globe-toggle {
     padding-inline: 13px;
   }
