@@ -2,6 +2,8 @@
 
 妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `af0d6f0`）。
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chnnic/jiwo-probe)
+
 与原版的差异（定制增强）：
 
 - **液态玻璃主题**（第 4 主题，`pixel → flat → anime → glass` 循环）——渐变玻璃面 + 斜向镜面光泽 + 4 层光斑背景，且做过性能优化（backdrop-filter 从 50+ 层降到 2 层，低 CPU/低耗电）
