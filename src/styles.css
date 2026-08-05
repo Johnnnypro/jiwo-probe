@@ -101,7 +101,7 @@ button {
   border: 1px solid var(--border);
   color: inherit;
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 6px 9px;
   cursor: pointer;
 }
@@ -570,6 +570,7 @@ button {
   justify-content: center;
   padding: 4px;
   border: 1px solid;
+  border-radius: var(--radius) 0 0 var(--radius);
 }
 .route-badge-animation.gold {
   border-color: #e8bd42;
@@ -592,6 +593,7 @@ button {
   margin-left: -1px;
   padding: 5px 4px;
   border: 1px solid;
+  border-radius: 0 var(--radius) var(--radius) 0;
   text-align: center;
   white-space: nowrap;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
@@ -1700,7 +1702,7 @@ footer a:hover {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: none;
   color: var(--muted);
   cursor: pointer;
@@ -1804,7 +1806,7 @@ footer a:hover {
 }
 .detail-loadavg code {
   padding: 1px 7px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--border);
   font-size: 11px;
   color: var(--foreground);
@@ -1820,7 +1822,7 @@ footer a:hover {
   align-items: center;
   gap: 6px;
   padding: 3px 9px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 11px;
   font-weight: 600;
 }
@@ -1870,7 +1872,7 @@ footer a:hover {
   max-width: 260px;
   padding: 4px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--surface-elevated, var(--surface));
   color: var(--foreground);
   font-size: 12px;
