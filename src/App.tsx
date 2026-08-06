@@ -377,8 +377,30 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
 
 function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { serverIndex: number; initial: ProbePingSeries[]; targetKey: string; title: string; mode: 'latency' | 'loss'; close: () => void }) {
   const [range, setRange] = useState<RangeKey>('1h')
+  const [group, setGroup] = useState<'all' | 'cn' | 'idc'>('all')
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [series, setSeries] = useState<ProbePingSeries[]>(initial)
   const [loading, setLoading] = useState(false)
+
+  const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
+  const groupSeries = useMemo(() => {
+    const list = series.map((item, index) => ({ item, index }))
+    if (group === 'all') return list
+    const cn = group === 'cn'
+    return list.filter(({ item }) => item.key !== '__avg__' && isCnLabel(item.label) === cn)
+  }, [series, group])
+  const displaySeries = useMemo(
+    () => groupSeries.filter(({ item }) => !hidden.has(item.key || item.label)),
+    [groupSeries, hidden],
+  )
+  const toggleHidden = (key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -407,18 +429,18 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
   const rangeMeta = ranges.find((item) => item.key === range) || ranges[0]
   const rows = useMemo(
     () =>
-      Array.from({ length: series[0]?.buckets.length || 0 }, (_, index) => {
+      Array.from({ length: displaySeries[0]?.item.buckets.length || 0 }, (_, index) => {
         const row: Record<string, string | number | null> = {
-          time: rangeMeta.bucketLabel(index, series[0]?.buckets.length || 0),
+          time: rangeMeta.bucketLabel(index, displaySeries[0]?.item.buckets.length || 0),
         }
-        for (const item of series) {
+        for (const { item } of displaySeries) {
           const bucket = item.buckets[index]
           const value = mode === 'loss' ? bucket?.loss : bucket?.ms
           row[item.key || item.label] = value !== undefined && value >= 0 ? value : null
         }
         return row
       }),
-    [series, mode, rangeMeta],
+    [displaySeries, mode, rangeMeta],
   )
 
   return createPortal(
@@ -438,6 +460,16 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
               {item.label}
             </button>
           ))}
+          <span className="ranges-sep" />
+          <button type="button" className={group === 'all' ? 'active' : ''} onClick={() => setGroup('all')}>
+            全部
+          </button>
+          <button type="button" className={group === 'cn' ? 'active' : ''} onClick={() => setGroup('cn')}>
+            内地
+          </button>
+          <button type="button" className={group === 'idc' ? 'active' : ''} onClick={() => setGroup('idc')}>
+            海外
+          </button>
         </div>
         <div className="chart">
           {loading && <div className="loading-overlay">加载中…</div>}
@@ -446,7 +478,7 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
               <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(rows.length / 8))} />
               <YAxis width={52} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} unit={mode === 'loss' ? '%' : 'ms'} domain={mode === 'loss' ? [0, 100] : undefined} />
               <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(value, _name, item) => [`${Number(value).toFixed(mode === 'loss' ? 1 : 0)}${mode === 'loss' ? '%' : 'ms'}`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]} />
-              {series.map((item, index) => {
+              {displaySeries.map(({ item, index }) => {
                 const key = item.key || item.label
                 const active = key === targetKey
                 return <Line key={key} type="monotone" dataKey={key} name={item.label} stroke={key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length]} strokeWidth={active ? 2.5 : 1} strokeOpacity={active ? 1 : 0.45} dot={false} connectNulls={false} isAnimationActive={false} />
@@ -454,19 +486,26 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
             </LineChart>
           </ResponsiveContainer>
         </div>
-        {series.length > 1 && (
+        {groupSeries.length > 0 && (
           <div className="legend">
-            {series.map((item, index) => {
+            {groupSeries.map(({ item, index }) => {
               const key = item.key || item.label
+              const off = hidden.has(key)
               return (
-                <span className={key === targetKey ? 'active' : ''} key={key}>
+                <button
+                  type="button"
+                  className={`${key === targetKey ? 'active' : ''}${off ? ' off' : ''}`}
+                  key={key}
+                  onClick={() => toggleHidden(key)}
+                  title={off ? '点击显示' : '点击隐藏'}
+                >
                   <i
                     style={{
                       background: key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length],
                     }}
                   />
                   {item.label}
-                </span>
+                </button>
               )
             })}
           </div>
