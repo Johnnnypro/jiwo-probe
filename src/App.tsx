@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
@@ -287,12 +287,13 @@ export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
   }
 }
 
-type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'ping'
+type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'ping' | 'speed'
 
 const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactNode }[] = [
   { key: 'cpu', label: 'CPU', icon: <Cpu size={13} /> },
   { key: 'mem', label: '内存', icon: <MemoryStick size={13} /> },
   { key: 'traffic', label: '流量', icon: <PieChart size={13} /> },
+  { key: 'speed', label: '实时速度', icon: <ArrowDownUp size={13} /> },
   { key: 'ping', label: '延迟', icon: <Gauge size={13} /> },
 ]
 
@@ -312,7 +313,11 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
     const indexed = servers.map((server, index) => {
       const avg = averagePing(server.ping || [])
       const value =
-        tab === 'cpu' ? server.cpu_pct ?? -1 : tab === 'mem' ? pct(server.mem_used, server.mem_total) : tab === 'traffic' ? server.traffic_used ?? -1 : avg.current_ms
+        tab === 'cpu' ? server.cpu_pct ?? -1
+        : tab === 'mem' ? pct(server.mem_used, server.mem_total)
+        : tab === 'traffic' ? server.traffic_used ?? -1
+        : tab === 'speed' ? (server.download_speed ?? 0) + (server.upload_speed ?? 0)
+        : avg.current_ms
       return { server, index, value }
     })
     return indexed
@@ -320,8 +325,11 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
       .sort((a, b) => (desc ? b.value - a.value : a.value - b.value))
       .slice(0, 10)
   }, [servers, tab, desc])
-  const format = (value: number) =>
-    tab === 'cpu' || tab === 'mem' ? `${value.toFixed(1)}%` : tab === 'traffic' ? bytes(value, false) : `${value.toFixed(0)} ms`
+  const format = (value: number, server: ProbeServer) =>
+    tab === 'cpu' || tab === 'mem' ? `${value.toFixed(1)}%`
+    : tab === 'traffic' ? bytes(value, false)
+    : tab === 'speed' ? `↓${speed(server.download_speed ?? 0)} ↑${speed(server.upload_speed ?? 0)}`
+    : `${value.toFixed(0)} ms`
   return (
     <section className={`leaderboard-card ${open ? 'open' : ''}`}>
       <button className="globe-toggle" type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
@@ -355,7 +363,7 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
                       {regionFlag(server.region) && !hasLeadingFlag(server.name || '') ? `${regionFlag(server.region)} ${server.name}` : server.name}
                     </Twemoji>
                   </span>
-                  <span className="lb-value">{format(value)}</span>
+                  <span className="lb-value">{format(value, server)}</span>
                 </button>
               </li>
             ))}
