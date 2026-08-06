@@ -310,6 +310,7 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<LeaderboardKey>('cpu')
   const [desc, setDesc] = useState(true)
+  const [expanded, setExpanded] = useState<number | null>(null)
   const selectTab = (key: LeaderboardKey) => {
     if (key === tab) {
       setDesc((value) => !value)
@@ -317,7 +318,9 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
       setTab(key)
       setDesc(true)
     }
+    setExpanded(null)
   }
+  const pingTab = tab === 'ping-cn' || tab === 'ping-idc'
   const rows = useMemo(() => {
     const indexed = servers.map((server, index) => {
       const avg = averagePing(server.ping || [])
@@ -329,13 +332,18 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
         : tab === 'ping-cn' ? groupedPingAvg(server.ping || [], true)
         : tab === 'ping-idc' ? groupedPingAvg(server.ping || [], false)
         : avg.current_ms
-      return { server, index, value }
+      const lines = pingTab
+        ? (server.ping || [])
+            .filter((item) => isCnLabel(item.label) === (tab === 'ping-cn'))
+            .map((item) => ({ label: item.label, ms: item.current_ms }))
+        : []
+      return { server, index, value, lines }
     })
     return indexed
       .filter((row) => row.value >= 0)
       .sort((a, b) => (desc ? b.value - a.value : a.value - b.value))
       .slice(0, 10)
-  }, [servers, tab, desc])
+  }, [servers, tab, desc, pingTab])
   const format = (value: number, server: ProbeServer) =>
     tab === 'cpu' || tab === 'mem' ? `${value.toFixed(1)}%`
     : tab === 'traffic' ? bytes(value, false)
@@ -365,17 +373,42 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
             ))}
           </div>
           <ol className="leaderboard-list">
-            {rows.map(({ server, index, value }, rank) => (
+            {rows.map(({ server, index, value, lines }, rank) => (
               <li key={`${server.name}-${index}`}>
-                <button type="button" onClick={() => (location.hash = `#/server/${index}`)}>
-                  <span className="rank">{rank + 1}</span>
-                  <span className="lb-name">
-                    <Twemoji>
-                      {regionFlag(server.region) && !hasLeadingFlag(server.name || '') ? `${regionFlag(server.region)} ${server.name}` : server.name}
-                    </Twemoji>
-                  </span>
-                  <span className="lb-value">{format(value, server)}</span>
-                </button>
+                <div className="lb-row">
+                  <button type="button" className="lb-main" onClick={() => (location.hash = `#/server/${index}`)}>
+                    <span className="rank">{rank + 1}</span>
+                    <span className="lb-name">
+                      <Twemoji>
+                        {regionFlag(server.region) && !hasLeadingFlag(server.name || '') ? `${regionFlag(server.region)} ${server.name}` : server.name}
+                      </Twemoji>
+                    </span>
+                    <span className="lb-value">
+                      {format(value, server)}
+                      {pingTab && lines.length > 0 && <em className="lb-lines-count">{lines.filter((l) => l.ms >= 0).length}线</em>}
+                    </span>
+                  </button>
+                  {pingTab && lines.length > 0 && (
+                    <button
+                      type="button"
+                      className={`lb-expand${expanded === index ? ' open' : ''}`}
+                      aria-label={expanded === index ? '收起线路明细' : '展开线路明细'}
+                      onClick={() => setExpanded((prev) => (prev === index ? null : index))}
+                    >
+                      <ChevronDown size={13} />
+                    </button>
+                  )}
+                </div>
+                {pingTab && expanded === index && (
+                  <div className="lb-lines">
+                    {lines.map((line) => (
+                      <span key={line.label} className={line.ms < 0 ? 'timeout' : ''}>
+                        {line.label}
+                        <b>{line.ms < 0 ? '超时' : `${line.ms.toFixed(0)} ms`}</b>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
             {!rows.length && <li className="lb-empty">暂无数据</li>}

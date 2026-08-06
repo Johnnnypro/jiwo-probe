@@ -1402,8 +1402,14 @@ footer a:hover {
   flex-direction: column;
   gap: 2px;
 }
-.leaderboard-list li button {
-  width: 100%;
+.leaderboard-list .lb-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.leaderboard-list .lb-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1416,8 +1422,65 @@ footer a:hover {
   cursor: pointer;
   text-align: left;
 }
-.leaderboard-list li button:hover {
+.leaderboard-list li:hover > .lb-row .lb-main,
+.leaderboard-list .lb-main:hover {
   background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+.leaderboard-list .lb-expand {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 4px);
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+.leaderboard-list .lb-expand:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  border-color: var(--border);
+}
+.leaderboard-list .lb-expand.open {
+  transform: rotate(180deg);
+}
+.leaderboard-list .lb-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 4px 8px 8px 40px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.leaderboard-list .lb-lines span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.leaderboard-list .lb-lines span.timeout {
+  opacity: 0.55;
+}
+.leaderboard-list .lb-lines b {
+  font-weight: 600;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.leaderboard-list .lb-lines span.timeout b {
+  color: #dc2626;
+}
+.leaderboard-list .lb-lines-count {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--accent, #8b5cf6);
+  margin-left: 4px;
+  white-space: nowrap;
 }
 .leaderboard-list .rank {
   flex: 0 0 22px;
