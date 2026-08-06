@@ -298,17 +298,90 @@ button {
   box-shadow: var(--shadow);
 }
 .summary-card {
-  padding: 18px;
+  padding: 0;
+  overflow: hidden;
 }
 .summary-card > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   min-height: 30px;
   margin-bottom: 15px;
   color: var(--foreground);
   font-size: 15px;
   font-weight: 650;
+}
+.summary-toggle {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border: 0;
+  color: var(--foreground, #172033);
+  background: transparent;
+  cursor: pointer;
+}
+.summary-toggle > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 650;
+}
+.summary-toggle > span:first-child svg {
+  color: var(--primary);
+}
+.summary-toggle .summary-toggle-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+}
+.summary-toggle .summary-toggle-info b {
+  color: var(--foreground);
+  font-weight: 650;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.summary-toggle .summary-toggle-info b.ok {
+  color: #16a34a;
+}
+.summary-toggle .summary-toggle-info b.bad {
+  color: #dc2626;
+}
+.summary-toggle .summary-toggle-info em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-style: normal;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.summary-toggle svg:last-child {
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+.collapse-card.open .summary-toggle svg:last-child {
+  transform: rotate(180deg);
+}
+.collapse-card .collapse-body {
+  padding: 0 18px 16px;
+}
+.expiry-shortcut-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 .summary-card > header > span,
 .expiry-shortcut {
@@ -1869,7 +1942,13 @@ footer a:hover {
     gap: 10px;
   }
   .summary-card {
-    padding: 13px;
+    padding: 0;
+  }
+  .collapse-card .collapse-body {
+    padding: 0 13px 12px;
+  }
+  .summary-toggle {
+    padding: 10px 13px;
   }
   .summary-card > header {
     margin-bottom: 10px;

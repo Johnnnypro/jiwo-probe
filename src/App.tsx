@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Moon, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
@@ -219,29 +219,55 @@ function AssetsSummary({ servers }: { servers: ProbeServer[] }) {
     return { totalValue, totalMonthly, priced }
   }, [servers])
   if (stats.priced === 0) return null
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('probe-summary-assets') === '1')
+  const toggle = () => {
+    setCollapsed((value) => {
+      const next = !value
+      localStorage.setItem('probe-summary-assets', next ? '1' : '0')
+      return next
+    })
+  }
   return (
-    <article className="summary-card">
-      <header>
+    <article className={`summary-card collapse-card${collapsed ? ' collapsed' : ' open'}`}>
+      <button
+        className="summary-toggle"
+        type="button"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? '展开资产总揽' : '折叠资产总揽'}
+        onClick={toggle}
+      >
         <span>
           <BadgeDollarSign size={18} />
           资产总揽
         </span>
-        <small>按剩余天数折算</small>
-      </header>
-      <div className="assets-stats">
-        <div className="assets-main">
-          <span>总剩余价值</span>
-          <strong>{formatMoney(stats.totalValue, 'CNY', true)}</strong>
+        <span className="summary-toggle-info">
+          {collapsed && (
+            <>
+              <b>{formatMoney(stats.totalValue, 'CNY', true)}</b>
+              <em>月均 {formatMoney(stats.totalMonthly, 'CNY', true)}</em>
+            </>
+          )}
+          <ChevronDown size={17} />
+        </span>
+      </button>
+      {!collapsed && (
+        <div className="collapse-body">
+          <div className="assets-stats">
+            <div className="assets-main">
+              <span>总剩余价值</span>
+              <strong>{formatMoney(stats.totalValue, 'CNY', true)}</strong>
+            </div>
+            <div className="assets-sub">
+              <span>
+                月均成本 <b>{formatMoney(stats.totalMonthly, 'CNY', true)}</b>
+              </span>
+              <span>
+                覆盖 <b>{stats.priced}</b> / {servers.length} 台
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="assets-sub">
-          <span>
-            月均成本 <b>{formatMoney(stats.totalMonthly, 'CNY', true)}</b>
-          </span>
-          <span>
-            覆盖 <b>{stats.priced}</b> / {servers.length} 台
-          </span>
-        </div>
-      </div>
+      )}
     </article>
   )
 }
@@ -1069,6 +1095,23 @@ export function App() {
   const [region, setRegion] = useState('all')
   const [search, setSearch] = useState('')
   const [globeOpen, setGlobeOpen] = useState(false)
+  const [summaryCollapsed, setSummaryCollapsed] = useState<Set<string>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('probe-summary-collapsed') || '[]')
+      return new Set(Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string') : [])
+    } catch {
+      return new Set()
+    }
+  })
+  const toggleSummary = (key: string) => {
+    setSummaryCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      localStorage.setItem('probe-summary-collapsed', JSON.stringify([...next]))
+      return next
+    })
+  }
   const [theme, setTheme] = useState<ThemeName | null>(() => getThemeOverride())
   const [darkMode, setDarkMode] = useState<string | null>(() => getDarkOverride())
   const [detailIndex, setDetailIndex] = useState<number | null>(() => {
@@ -1181,56 +1224,102 @@ export function App() {
         </nav>
       </header>
       <section className="dashboard-summary">
-        <article className="summary-card">
-          <header>
+        <article className={`summary-card collapse-card${summaryCollapsed.has('nodes') ? ' collapsed' : ' open'}`}>
+          <button
+            className="summary-toggle"
+            type="button"
+            aria-expanded={!summaryCollapsed.has('nodes')}
+            aria-label={summaryCollapsed.has('nodes') ? '展开节点情况' : '折叠节点情况'}
+            onClick={() => toggleSummary('nodes')}
+          >
             <span>
               <Server size={18} />
               节点情况
             </span>
-            {hasExpiry && (
-              <button className="expiry-shortcut" onClick={() => setFilter('renewal')}>
-                <CalendarClock size={14} />
-                待续费 <b>{renewalCount}</b>
-              </button>
-            )}
-          </header>
-          <div className="node-stats">
-            <button onClick={() => setFilter('all')}>
-              <strong>{servers.length}</strong>
-              <span>
-                <Server size={14} />
-                总节点
-              </span>
-            </button>
-            <button onClick={() => setFilter('online')} className="online">
-              <strong>{onlineCount}</strong>
-              <span>
-                <CheckCircle2 size={14} />
-                在线节点
-              </span>
-            </button>
-            <button onClick={() => setFilter('offline')} className="offline">
-              <strong>{servers.length - onlineCount}</strong>
-              <span>
-                <XCircle size={14} />
-                离线节点
-              </span>
-            </button>
-          </div>
+            <span className="summary-toggle-info">
+              {summaryCollapsed.has('nodes') && (
+                <>
+                  <b>{servers.length} 总</b>
+                  <b className="ok">{onlineCount} 在线</b>
+                  <b className="bad">{servers.length - onlineCount} 离线</b>
+                  {hasExpiry && (
+                    <em>
+                      <CalendarClock size={12} />
+                      待续费 {renewalCount}
+                    </em>
+                  )}
+                </>
+              )}
+              <ChevronDown size={17} />
+            </span>
+          </button>
+          {!summaryCollapsed.has('nodes') && (
+            <div className="collapse-body">
+              {hasExpiry && (
+                <div className="expiry-shortcut-row">
+                  <button className="expiry-shortcut" onClick={() => setFilter('renewal')}>
+                    <CalendarClock size={14} />
+                    待续费 <b>{renewalCount}</b>
+                  </button>
+                </div>
+              )}
+              <div className="node-stats">
+                <button onClick={() => setFilter('all')}>
+                  <strong>{servers.length}</strong>
+                  <span>
+                    <Server size={14} />
+                    总节点
+                  </span>
+                </button>
+                <button onClick={() => setFilter('online')} className="online">
+                  <strong>{onlineCount}</strong>
+                  <span>
+                    <CheckCircle2 size={14} />
+                    在线节点
+                  </span>
+                </button>
+                <button onClick={() => setFilter('offline')} className="offline">
+                  <strong>{servers.length - onlineCount}</strong>
+                  <span>
+                    <XCircle size={14} />
+                    离线节点
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
         </article>
         {hasSpeed && (
-          <article className="summary-card">
-            <header>
+          <article className={`summary-card collapse-card${summaryCollapsed.has('network') ? ' collapsed' : ' open'}`}>
+            <button
+              className="summary-toggle"
+              type="button"
+              aria-expanded={!summaryCollapsed.has('network')}
+              aria-label={summaryCollapsed.has('network') ? '展开网络情况' : '折叠网络情况'}
+              onClick={() => toggleSummary('network')}
+            >
               <span>
                 <Gauge size={18} />
                 网络情况
               </span>
-              <small>实时汇总</small>
-            </header>
-            <div className="network-stats">
-              <SpeedSummary label="总下行网速" value={totalDownload} direction="down" />
-              <SpeedSummary label="总上行网速" value={totalUpload} direction="up" />
-            </div>
+              <span className="summary-toggle-info">
+                {summaryCollapsed.has('network') && (
+                  <>
+                    <b>↓{speed(totalDownload)}</b>
+                    <b>↑{speed(totalUpload)}</b>
+                  </>
+                )}
+                <ChevronDown size={17} />
+              </span>
+            </button>
+            {!summaryCollapsed.has('network') && (
+              <div className="collapse-body">
+                <div className="network-stats">
+                  <SpeedSummary label="总下行网速" value={totalDownload} direction="down" />
+                  <SpeedSummary label="总上行网速" value={totalUpload} direction="up" />
+                </div>
+              </div>
+            )}
           </article>
         )}
         <AssetsSummary servers={servers} />
