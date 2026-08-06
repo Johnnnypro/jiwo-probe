@@ -287,14 +287,23 @@ export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
   }
 }
 
-type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'ping' | 'speed'
+type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'speed' | 'ping-cn' | 'ping-idc'
+
+const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
+
+function groupedPingAvg(ping: ProbePingSeries[], cn: boolean): number {
+  const list = (ping || []).filter((item) => isCnLabel(item.label) === cn)
+  const current = list.filter((item) => item.current_ms >= 0).map((item) => item.current_ms)
+  return current.length ? current.reduce((a, b) => a + b, 0) / current.length : -1
+}
 
 const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactNode }[] = [
   { key: 'cpu', label: 'CPU', icon: <Cpu size={13} /> },
   { key: 'mem', label: '内存', icon: <MemoryStick size={13} /> },
   { key: 'traffic', label: '流量', icon: <PieChart size={13} /> },
   { key: 'speed', label: '实时速度', icon: <ArrowDownUp size={13} /> },
-  { key: 'ping', label: '延迟', icon: <Gauge size={13} /> },
+  { key: 'ping-cn', label: '内地延迟', icon: <Gauge size={13} /> },
+  { key: 'ping-idc', label: '海外延迟', icon: <Globe2 size={13} /> },
 ]
 
 function Leaderboard({ servers }: { servers: ProbeServer[] }) {
@@ -317,6 +326,8 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
         : tab === 'mem' ? pct(server.mem_used, server.mem_total)
         : tab === 'traffic' ? server.traffic_used ?? -1
         : tab === 'speed' ? (server.download_speed ?? 0) + (server.upload_speed ?? 0)
+        : tab === 'ping-cn' ? groupedPingAvg(server.ping || [], true)
+        : tab === 'ping-idc' ? groupedPingAvg(server.ping || [], false)
         : avg.current_ms
       return { server, index, value }
     })

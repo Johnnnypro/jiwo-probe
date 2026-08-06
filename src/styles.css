@@ -1360,14 +1360,23 @@ footer a:hover {
   display: flex;
   gap: 6px;
   margin-bottom: 10px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.leaderboard-tabs::-webkit-scrollbar {
+  display: none;
 }
 .leaderboard-tabs button {
-  flex: 1;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 6px 8px;
+  padding: 6px 10px;
+  white-space: nowrap;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
   color: var(--muted);
