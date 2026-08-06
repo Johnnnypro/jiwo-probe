@@ -52,8 +52,30 @@ const colors = ['#8b5cf6', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'
 
 function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: number; initial: ProbePingSeries[]; targetKey: string }) {
   const [range, setRange] = useState<RangeKey>('1h')
+  const [group, setGroup] = useState<'all' | 'cn' | 'idc'>('all')
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [series, setSeries] = useState<ProbePingSeries[]>(initial)
   const [loading, setLoading] = useState(false)
+
+  const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
+  const groupSeries = useMemo(() => {
+    const list = series.map((item, index) => ({ item, index }))
+    if (group === 'all') return list
+    const cn = group === 'cn'
+    return list.filter(({ item }) => item.key !== '__avg__' && isCnLabel(item.label) === cn)
+  }, [series, group])
+  const displaySeries = useMemo(
+    () => groupSeries.filter(({ item }) => !hidden.has(item.key || item.label)),
+    [groupSeries, hidden],
+  )
+  const toggleHidden = (key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -82,17 +104,17 @@ function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: numb
   const rangeMeta = RANGES.find((item) => item.key === range) || RANGES[0]
   const rows = useMemo(
     () =>
-      Array.from({ length: series[0]?.buckets.length || 0 }, (_, index) => {
+      Array.from({ length: displaySeries[0]?.item.buckets.length || 0 }, (_, index) => {
         const row: Record<string, string | number | null> = {
-          time: rangeMeta.bucketLabel(index, series[0]?.buckets.length || 0),
+          time: rangeMeta.bucketLabel(index, displaySeries[0]?.item.buckets.length || 0),
         }
-        for (const item of series) {
+        for (const { item } of displaySeries) {
           const bucket = item.buckets[index]
           row[item.key || item.label] = bucket && bucket.ms >= 0 ? bucket.ms : null
         }
         return row
       }),
-    [series, rangeMeta],
+    [displaySeries, rangeMeta],
   )
 
   return (
@@ -103,15 +125,30 @@ function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: numb
             {item.label}
           </button>
         ))}
+        <span className="ranges-sep" />
+        <button type="button" className={group === 'all' ? 'active' : ''} onClick={() => setGroup('all')}>
+          全部
+        </button>
+        <button type="button" className={group === 'cn' ? 'active' : ''} onClick={() => setGroup('cn')}>
+          内地
+        </button>
+        <button type="button" className={group === 'idc' ? 'active' : ''} onClick={() => setGroup('idc')}>
+          海外
+        </button>
       </div>
       <div className="detail-chart">
         {loading && <div className="loading-overlay">加载中…</div>}
+        {!loading && !displaySeries.length && (
+          <div className="chart-empty">
+            该服务器未配置{group === 'cn' ? '内地' : '海外'}探测点
+          </div>
+        )}
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
             <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(rows.length / 8))} />
             <YAxis width={52} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} unit="ms" />
             <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(value, _name, item) => [`${Number(value).toFixed(0)}ms`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]} />
-            {series.map((item, index) => {
+            {displaySeries.map(({ item, index }) => {
               const key = item.key || item.label
               const active = key === targetKey
               return <Line key={key} type="monotone" dataKey={key} name={item.label} stroke={key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length]} strokeWidth={active ? 2.5 : 1} strokeOpacity={active ? 1 : 0.45} dot={false} connectNulls={false} isAnimationActive={false} />
@@ -119,17 +156,26 @@ function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: numb
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div className="legend">
-        {series.map((item, index) => {
-          const key = item.key || item.label
-          return (
-            <span className={key === targetKey ? 'active' : ''} key={key}>
-              <i style={{ background: key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length] }} />
-              {item.label}
-            </span>
-          )
-        })}
-      </div>
+      {groupSeries.length > 0 && (
+        <div className="legend">
+          {groupSeries.map(({ item, index }) => {
+            const key = item.key || item.label
+            const off = hidden.has(key)
+            return (
+              <button
+                type="button"
+                className={`${key === targetKey ? 'active' : ''}${off ? ' off' : ''}`}
+                key={key}
+                onClick={() => toggleHidden(key)}
+                title={off ? '点击显示' : '点击隐藏'}
+              >
+                <i style={{ background: key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length] }} />
+                {item.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </>
   )
 }

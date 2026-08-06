@@ -473,6 +473,11 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
         </div>
         <div className="chart">
           {loading && <div className="loading-overlay">加载中…</div>}
+          {!loading && !displaySeries.length && (
+            <div className="chart-empty">
+              该服务器未配置{group === 'cn' ? '内地' : '海外'}探测点
+            </div>
+          )}
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
               <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(rows.length / 8))} />
