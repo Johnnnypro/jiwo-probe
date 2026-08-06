@@ -1076,15 +1076,22 @@ footer a:hover {
 }
 .ranges {
   display: flex;
-  gap: 6px;
-  margin: 14px 0;
+  gap: 4px;
+  margin: 12px 0;
   flex-wrap: wrap;
+}
+.ranges button {
+  min-width: auto;
+  min-height: 24px;
+  padding: 1px 6px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 .ranges-sep {
   width: 1px;
   align-self: stretch;
   background: var(--border);
-  margin: 0 4px;
+  margin: 0 3px;
 }
 .chart {
   position: relative;
