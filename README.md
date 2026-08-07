@@ -1,6 +1,6 @@
 # Jiwo Probe（鸡窝状态站）
 
-妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `af0d6f0`）。
+妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `2dc05b3`）。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chnnic/jiwo-probe)
 
@@ -17,14 +17,16 @@
 - **卡片模式**——带 Ping 趋势、回程勋章、到期续费链接的完整卡片
 - **列表模式**——可排序表格（CPU/内存/流量/延迟等列点击排序），带迷你趋势按钮
 
-### 主题系统
+### 主题系统（五套，一键切换）
 
-- **液态玻璃主题**（第 4 主题，`pixel → flat → anime → glass` 循环）——渐变玻璃面 + 斜向镜面光泽 + 顶部镜面高光 + 4 层光斑背景，真液态玻璃而非毛玻璃
+- **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina` 循环）——复刻 Komari Theme LuminaPlus 卡片：浅色阶分层 + 描边（无阴影），健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）
+- **液态玻璃主题**（第 4 主题）——渐变玻璃面 + 斜向镜面光泽 + 顶部镜面高光 + 4 层光斑背景，真液态玻璃而非毛玻璃
 - 做过性能优化：backdrop-filter 合成层从 50+ 降到 2 层（仅顶部栏和遮罩），低 CPU / 低耗电，手机不发烫
 
 ### 数据与交互增强
 
-- **多维榜单**——CPU / 内存 / 流量 / 延迟四维 Top 10，Twemoji 国旗，前三金银铜徽章，点击当前维度可切换升降序
+- **多维榜单**——16 个维度 Top 10（CPU / 内存 / 磁盘 / 负载 / 流量 / 流量使用率 / 实时速度 / 在线时长 / 今日流量 / 近7日流量 / 内地丢包率 / 海外丢包率 / 月成本 / 到期时间 / 内地延迟 / 海外延迟），Twemoji 国旗，前三金银铜徽章，点击当前维度切换升降序，到期时间默认升序（最快到期在前）
+- **榜单明细展开**——内地/海外延迟与丢包率维度，点击行尾箭头展开查看该节点每条线路的具体值（延迟 ms / 丢包率 %，超时与无数据区分显示）
 - **搜索框**——按名称 / 地区 / 服务商即时过滤节点
 - **地区筛选下拉**——自定义组件，Twemoji 旗帜图片渲染（原生 `<select>` 在 Windows 下旗帜会显示成字母）
 - **地区分布折叠卡**——按地区聚合，全球 SVG 分布图
