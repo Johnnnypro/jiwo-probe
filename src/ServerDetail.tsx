@@ -4,7 +4,7 @@ import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, ChevronLe
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbePingSeries, ProbeServer } from './types'
 import { Twemoji } from './Twemoji'
-import { Meter, ReturnRouteBadges, averagePing, bytes, expiring, expired, formatAxisDateTime, formatLossTick, hasLeadingFlag, HorizontalChart, lossScale, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
+import { Meter, ReturnRouteBadges, TrafficChart, averagePing, bytes, expiring, expired, formatAxisDateTime, formatLossTick, hasLeadingFlag, HorizontalChart, lossScale, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
 import { computeRemainingValue, formatMoney } from './value'
 
 const cycleLabel = {
@@ -119,13 +119,13 @@ function PingTrendChart({ serverIndex, initial, targetKey, mode }: { serverIndex
   const rows = useMemo(
     () =>
       Array.from({ length: displaySeries[0]?.item.buckets.length || 0 }, (_, index) => {
+        const ts =
+          timeMeta.generatedAt -
+          (timeMeta.generatedAt % timeMeta.bucketSec) -
+          ((displaySeries[0]?.item.buckets.length || 0) - 1 - index) * timeMeta.bucketSec
         const row: Record<string, string | number | null> = {
-          time: formatAxisDateTime(
-            timeMeta.generatedAt -
-              (timeMeta.generatedAt % timeMeta.bucketSec) -
-              ((displaySeries[0]?.item.buckets.length || 0) - 1 - index) * timeMeta.bucketSec,
-            range === '1h',
-          ),
+          time: formatAxisDateTime(ts, range === '1h'),
+          ts,
         }
         for (const { item } of displaySeries) {
           const bucket = item.buckets[index]
@@ -228,7 +228,11 @@ function PingTrendChart({ serverIndex, initial, targetKey, mode }: { serverIndex
                 ticks={mode === 'loss' ? dynamicLossScale.ticks : undefined}
                 tickFormatter={mode === 'loss' ? (value) => formatLossTick(Number(value)) : undefined}
               />
-              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(value, _name, item) => [`${Number(value).toFixed(mode === 'loss' ? 1 : 0)}${mode === 'loss' ? '%' : 'ms'}`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]} />
+              <Tooltip
+                contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                formatter={(value, _name, item) => [`${Number(value).toFixed(mode === 'loss' ? 1 : 0)}${mode === 'loss' ? '%' : 'ms'}`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]}
+                labelFormatter={(_value, payload) => formatAxisDateTime(Number((payload?.[0]?.payload as { ts?: number } | undefined)?.ts ?? 0), true)}
+              />
               {displaySeries.map(({ item, index }) => {
                 const key = item.key || item.label
                 const active = key === targetKey
@@ -281,7 +285,7 @@ function DetailMetric({ icon, label, value, percent }: { icon: React.ReactNode; 
 
 export function ServerDetail({ server, index, onClose }: { server: ProbeServer; index: number; onClose: () => void }) {
   const [selected, setSelected] = useState('__avg__')
-  const [trendMode, setTrendMode] = useState<'latency' | 'loss'>('latency')
+  const [trendMode, setTrendMode] = useState<'latency' | 'loss' | 'traffic'>('latency')
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   const ping = server.ping || []
@@ -405,7 +409,7 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
           {!!ping.length && (
             <section className="detail-panel">
               <div className="detail-panel-head">
-                <h3>{trendMode === 'latency' ? '延迟趋势' : '丢包趋势'}</h3>
+                <h3>{trendMode === 'latency' ? '延迟趋势' : trendMode === 'loss' ? '丢包趋势' : '日流量趋势'}</h3>
                 <div className="trend-mode-switch" role="tablist" aria-label="趋势类型">
                   <button type="button" role="tab" aria-selected={trendMode === 'latency'} className={trendMode === 'latency' ? 'active' : ''} onClick={() => setTrendMode('latency')}>
                     延迟
@@ -413,20 +417,29 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
                   <button type="button" role="tab" aria-selected={trendMode === 'loss'} className={trendMode === 'loss' ? 'active' : ''} onClick={() => setTrendMode('loss')}>
                     丢包
                   </button>
+                  <button type="button" role="tab" aria-selected={trendMode === 'traffic'} className={trendMode === 'traffic' ? 'active' : ''} onClick={() => setTrendMode('traffic')}>
+                    流量
+                  </button>
                 </div>
               </div>
-              <div className="detail-ping-picker">
-                <Wifi size={14} />
-                <select value={selected} onChange={(event) => setSelected(event.target.value)}>
-                  <option value="__avg__">平均</option>
-                  {ping.map((item) => (
-                    <option key={item.key || item.label} value={item.key || item.label}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <PingTrendChart serverIndex={index} initial={lines} targetKey={selected} mode={trendMode} />
+              {trendMode === 'traffic' ? (
+                <TrafficChart daily={server.daily_traffic || []} />
+              ) : (
+                <>
+                  <div className="detail-ping-picker">
+                    <Wifi size={14} />
+                    <select value={selected} onChange={(event) => setSelected(event.target.value)}>
+                      <option value="__avg__">平均</option>
+                      {ping.map((item) => (
+                        <option key={item.key || item.label} value={item.key || item.label}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <PingTrendChart serverIndex={index} initial={lines} targetKey={selected} mode={trendMode} />
+                </>
+              )}
             </section>
           )}
         </div>

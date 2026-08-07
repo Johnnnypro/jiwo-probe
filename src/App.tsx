@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, Clock, Cpu, Gauge, Globe2, HardDrive, Hourglass, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
@@ -363,7 +363,7 @@ export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
   }
 }
 
-type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'speed' | 'uptime' | 'today' | 'forecast' | 'loss' | 'cost' | 'value' | 'ping-cn' | 'ping-idc'
+type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'speed' | 'uptime' | 'today' | 'loss' | 'cost' | 'value' | 'ping-cn' | 'ping-idc'
 
 const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
 
@@ -396,16 +396,6 @@ function todayTraffic(server: ProbeServer): number {
   return daily?.length ? daily[daily.length - 1].total ?? -1 : -1
 }
 
-function forecastDays(server: ProbeServer): number {
-  const daily = server.daily_traffic
-  if (!daily?.length || server.traffic_limit === undefined || server.traffic_used === undefined) return -1
-  const recent = daily.slice(-7)
-  const avg = recent.reduce((sum, item) => sum + (item.total || 0), 0) / recent.length
-  if (avg <= 0) return -1
-  const remaining = Math.max(0, server.traffic_limit - server.traffic_used)
-  return remaining / avg
-}
-
 function avgLossPct(server: ProbeServer): number {
   const losses = (server.ping || []).map((item) => item.loss_pct).filter((value) => value >= 0)
   return losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : -1
@@ -428,7 +418,6 @@ const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactN
   { key: 'speed', label: '实时速度', icon: <ArrowDownUp size={13} /> },
   { key: 'uptime', label: '在线时长', icon: <Clock size={13} /> },
   { key: 'today', label: '今日流量', icon: <CalendarClock size={13} /> },
-  { key: 'forecast', label: '流量耗尽', icon: <Hourglass size={13} /> },
   { key: 'loss', label: '丢包率', icon: <Activity size={13} /> },
   { key: 'cost', label: '月成本', icon: <Wallet size={13} /> },
   { key: 'value', label: '性价比', icon: <BadgeDollarSign size={13} /> },
@@ -446,7 +435,7 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
       setDesc((value) => !value)
     } else {
       setTab(key)
-      setDesc(key !== 'forecast')
+      setDesc(true)
     }
     setExpanded(null)
   }
@@ -461,7 +450,6 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
         : tab === 'speed' ? (server.download_speed ?? 0) + (server.upload_speed ?? 0)
         : tab === 'uptime' ? server.uptime ?? -1
         : tab === 'today' ? todayTraffic(server)
-        : tab === 'forecast' ? forecastDays(server)
         : tab === 'loss' ? avgLossPct(server)
         : tab === 'cost' ? monthlyCost(server)
         : tab === 'value' ? valueScore(server)
@@ -486,7 +474,6 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
     : tab === 'speed' ? `↓${speed(server.download_speed ?? 0)} ↑${speed(server.upload_speed ?? 0)}`
     : tab === 'uptime' ? formatUptime(value)
     : tab === 'today' ? bytes(value, false)
-    : tab === 'forecast' ? (value >= 100 ? `${value.toFixed(0)} 天` : `${value.toFixed(1)} 天`)
     : tab === 'loss' ? `${value.toFixed(2)}%`
     : tab === 'cost' ? `¥${value.toFixed(0)}/月`
     : tab === 'value' ? `${value.toFixed(1)} 分/元`
@@ -555,7 +542,7 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
             ))}
             {!rows.length && (
               <li className="lb-empty">
-                {tab === 'uptime' || tab === 'today' || tab === 'forecast' ? '等待探针数据上报' : '暂无数据'}
+                {tab === 'uptime' || tab === 'today' ? '等待探针数据上报' : '暂无数据'}
               </li>
             )}
           </ol>
@@ -601,8 +588,135 @@ export function formatLossTick(value: number): string {
   return `${value.toFixed(digits).replace(/\.?0+$/, '')}%`
 }
 
+const TRAFFIC_LINES = [
+  { key: 'total', label: '总流量', stroke: '#3b82f6' },
+  { key: 'uplink', label: '上行流量', stroke: '#f97316' },
+  { key: 'downlink', label: '下行流量', stroke: '#22c55e' },
+] as const
+
+export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily: ProbeServer['daily_traffic']; containerClass?: string }) {
+  const rows = daily || []
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [trafficRange, setTrafficRange] = useState<'all' | '7d' | '30d'>('7d')
+  const [zoom, setZoom] = useState(1)
+  const [isFit, setIsFit] = useState(true)
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const shown = useMemo(() => {
+    if (!rows.length) return []
+    if (trafficRange === 'all') return rows
+    const days = trafficRange === '7d' ? 7 : 30
+    return rows.slice(-days)
+  }, [rows, trafficRange])
+  const fitZoom = () => {
+    const el = chartRef.current
+    if (!el || !shown.length) return
+    const target = el.clientWidth / (shown.length * 82)
+    setZoom(Math.max(0.05, Math.min(8, target)))
+    setIsFit(true)
+  }
+  useEffect(() => {
+    if (shown.length) {
+      const raf = requestAnimationFrame(fitZoom)
+      return () => cancelAnimationFrame(raf)
+    }
+    return undefined
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trafficRange, shown.length])
+  const toggleLine = (key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+  if (!rows.length) {
+    return <div className="chart-empty">暂无日流量数据</div>
+  }
+  return (
+    <>
+      <div className="ranges">
+        <button type="button" className={trafficRange === 'all' ? 'active' : ''} onClick={() => setTrafficRange('all')}>
+          全部
+        </button>
+        <button type="button" className={trafficRange === '7d' ? 'active' : ''} onClick={() => setTrafficRange('7d')}>
+          7日
+        </button>
+        <button type="button" className={trafficRange === '30d' ? 'active' : ''} onClick={() => setTrafficRange('30d')}>
+          30日
+        </button>
+        <span className="ranges-sep" />
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="缩小横轴"
+          title={`缩小横轴（当前 ${Math.round(zoom * 100)}%）`}
+          onClick={() => {
+            setZoom((value) => Math.max(0.05, Math.round((value - 0.1) * 10) / 10))
+            setIsFit(false)
+          }}
+        >
+          <ZoomOut size={13} />
+        </button>
+        <button
+          type="button"
+          className={`zoom-btn${isFit ? ' active' : ''}`}
+          aria-label="适应屏幕宽度"
+          title="适应屏幕宽度"
+          onClick={fitZoom}
+        >
+          <MoveHorizontal size={13} />
+        </button>
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="放大横轴"
+          title={`放大横轴（当前 ${Math.round(zoom * 100)}%）`}
+          onClick={() => {
+            setZoom((value) => Math.min(8, Math.round((value + 0.1) * 10) / 10))
+            setIsFit(false)
+          }}
+        >
+          <ZoomIn size={13} />
+        </button>
+      </div>
+      <div className={containerClass} ref={chartRef}>
+        <HorizontalChart width={Math.max(120, shown.length * 82 * zoom)}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={shown} margin={{ top: 8, right: 12, bottom: 0, left: 8 }}>
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
+              <YAxis width={52} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(value) => bytes(Number(value), false)} />
+              <Tooltip
+                contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                labelFormatter={(value) => String(value)}
+                formatter={(value, _name, item) => [bytes(Number(value)), (item as { dataKey?: string } | undefined)?.dataKey === 'total' ? '总流量' : (item as { dataKey?: string } | undefined)?.dataKey === 'uplink' ? '上行' : '下行']}
+              />
+              {TRAFFIC_LINES.filter((line) => !hidden.has(line.key)).map((line) => (
+                <Line key={line.key} type="monotone" dataKey={line.key} name={line.label} stroke={line.stroke} strokeWidth={2} dot={false} isAnimationActive={false} />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </HorizontalChart>
+      </div>
+      <div className="traffic-line-toggle">
+        {TRAFFIC_LINES.map((line) => (
+          <button
+            type="button"
+            key={line.key}
+            className={hidden.has(line.key) ? 'off' : 'active'}
+            style={{ '--line-color': line.stroke } as React.CSSProperties}
+            onClick={() => toggleLine(line.key)}
+          >
+            <span className="dot" />
+            {line.label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function TrafficDialog({ server, close }: { server: ProbeServer; close: () => void }) {
-  const rows = server.daily_traffic || []
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
       <section className="modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -612,23 +726,7 @@ function TrafficDialog({ server, close }: { server: ProbeServer; close: () => vo
             ×
           </button>
         </header>
-        <div className="chart">
-          <HorizontalChart width={Math.max(760, rows.length * 82)}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 8 }}>
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={0} minTickGap={28} />
-                <YAxis width={62} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(value) => bytes(Number(value), false)} />
-                <Tooltip
-                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                  labelFormatter={(value) => String(value)}
-                  formatter={(value, name) => [bytes(Number(value)), name === 'uplink' ? '上行' : '下行']}
-                />
-                <Line type="monotone" dataKey="uplink" name="上行" stroke="#f97316" strokeWidth={2} dot={false} isAnimationActive={false} />
-                <Line type="monotone" dataKey="downlink" name="下行" stroke="#22c55e" strokeWidth={2} dot={false} isAnimationActive={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </HorizontalChart>
-        </div>
+        <TrafficChart daily={server.daily_traffic || []} containerClass="chart" />
       </section>
     </div>,
     document.body,
@@ -748,13 +846,13 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
   const rows = useMemo(
     () =>
       Array.from({ length: displaySeries[0]?.item.buckets.length || 0 }, (_, index) => {
+        const ts =
+          timeMeta.generatedAt -
+          (timeMeta.generatedAt % timeMeta.bucketSec) -
+          ((displaySeries[0]?.item.buckets.length || 0) - 1 - index) * timeMeta.bucketSec
         const row: Record<string, string | number | null> = {
-          time: formatAxisDateTime(
-            timeMeta.generatedAt -
-              (timeMeta.generatedAt % timeMeta.bucketSec) -
-              ((displaySeries[0]?.item.buckets.length || 0) - 1 - index) * timeMeta.bucketSec,
-            range === '1h',
-          ),
+          time: formatAxisDateTime(ts, range === '1h'),
+          ts,
         }
         for (const { item } of displaySeries) {
           const bucket = item.buckets[index]
@@ -866,7 +964,11 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
                   ticks={mode === 'loss' ? dynamicLossScale.ticks : undefined}
                   tickFormatter={mode === 'loss' ? (value) => formatLossTick(Number(value)) : undefined}
                 />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(value, _name, item) => [`${Number(value).toFixed(mode === 'loss' ? 1 : 0)}${mode === 'loss' ? '%' : 'ms'}`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]} />
+                <Tooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                  formatter={(value, _name, item) => [`${Number(value).toFixed(mode === 'loss' ? 1 : 0)}${mode === 'loss' ? '%' : 'ms'}`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]}
+                  labelFormatter={(_value, payload) => formatAxisDateTime(Number((payload?.[0]?.payload as { ts?: number } | undefined)?.ts ?? 0), true)}
+                />
                 {displaySeries.map(({ item, index }) => {
                   const key = item.key || item.label
                   const active = key === targetKey
