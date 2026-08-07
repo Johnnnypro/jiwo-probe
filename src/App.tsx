@@ -1262,6 +1262,22 @@ function LuminaTrafficPulse({ samples }: { samples: ProbeServer['daily_traffic']
   )
 }
 
+function luminaHeatColor(kind: 'latency' | 'loss', value: number): string {
+  // 与延迟/丢包数值同色系(status tokens, 阈值仿原版 latency/loss bounds)
+  if (kind === 'latency') {
+    if (value < 100) return 'var(--status-success)'
+    if (value < 150) return '#a3e635'
+    if (value < 200) return 'var(--status-warning)'
+    if (value < 300) return '#fb923c'
+    return 'var(--status-error)'
+  }
+  if (value < 1) return 'var(--status-success)'
+  if (value < 3) return '#a3e635'
+  if (value < 5) return 'var(--status-warning)'
+  if (value < 10) return '#fb923c'
+  return 'var(--status-error)'
+}
+
 function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'latency' | 'loss' }) {
   const bars = buckets.slice(-LUMINA_QUOTA_SEGMENTS)
   const values = bars.map((b) => (kind === 'latency' ? b.ms : b.loss)).filter((v) => v >= 0)
@@ -1271,14 +1287,14 @@ function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'la
       {bars.map((bucket, index) => {
         const raw = kind === 'latency' ? bucket.ms : bucket.loss
         const height = raw >= 0 ? (raw / max) * 100 : 8
-        const tone = raw >= 0 ? Math.max(0, Math.min(1, raw / max)) : 0
         return (
           <span
             key={index}
+            title={raw >= 0 ? (kind === 'latency' ? `延迟 ${Math.round(raw)} ms` : `丢包 ${raw.toFixed(1)}%`) : '无数据'}
             style={
               {
                 '--bar-h': `${height}%`,
-                '--bar-c': `color-mix(in srgb, ${kind === 'latency' ? '#3b82f6' : '#8b5cf6'} ${20 + tone * 80}%, var(--progress-bg))`,
+                '--bar-c': raw >= 0 ? luminaHeatColor(kind, raw) : 'var(--progress-bg)',
               } as React.CSSProperties
             }
           />
@@ -1290,6 +1306,8 @@ function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'la
 
 function ServerCardLumina({ server, index }: { server: ProbeServer; index: number }) {
   const [trafficOpen, setTrafficOpen] = useState(false)
+  const [healthTarget, setHealthTarget] = useState('__avg__')
+  const [healthTrend, setHealthTrend] = useState<'latency' | 'loss' | null>(null)
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   const isOffline = !server.online
@@ -1297,9 +1315,12 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
   const loadParts = (server.loadavg || '').split(/\s+/).map(Number).filter((v) => Number.isFinite(v))
   const load1 = loadParts[0]
   const loadFraction = load1 !== undefined && cores > 0 ? Math.max(0, Math.min(1, load1 / cores)) : 0
-  const avgPingSeries = averagePing(server.ping || [])
-  const currentMs = avgPingSeries.current_ms >= 0 ? avgPingSeries.current_ms : null
-  const lossAvg = avgLossPct(server)
+  const pingList = server.ping?.length ? server.ping : []
+  const pingCurrent = healthTarget === '__avg__' || !pingList.length
+    ? averagePing(pingList)
+    : (pingList.find((item) => (item.key || item.label) === healthTarget) || averagePing(pingList))
+  const currentMs = pingCurrent.current_ms >= 0 ? pingCurrent.current_ms : null
+  const lossAvg = !pingList.length ? -1 : (pingCurrent.loss_pct ?? 0)
   const trafficFraction = server.traffic_limit ? pct(server.traffic_used, server.traffic_limit) / 100 : 0
   const upRate = server.upload_speed
   const downRate = server.download_speed
@@ -1386,7 +1407,19 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
               <small className="tabular">{cycleDown !== undefined ? `周期 ${bytes(cycleDown)}` : ''}</small>
             </div>
             <div className="lumina-traffic-pulse-wrap">
-              <LuminaTrafficPulse samples={server.daily_traffic} />
+              <button
+                type="button"
+                className="lumina-pulse-btn"
+                aria-label="查看流量趋势"
+                title="点击查看流量趋势"
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setTrafficOpen(true)
+                }}
+              >
+                <LuminaTrafficPulse samples={server.daily_traffic} />
+              </button>
             </div>
           </div>
         )}
@@ -1429,14 +1462,43 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
             <div className="lumina-health-head">
               <span className="lumina-health-label">
                 <Clock3 size={13} />
-                延迟
+                <select
+                  className="lumina-health-select"
+                  value={healthTarget}
+                  aria-label="延迟展示内容"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  onChange={(event) => {
+                    event.stopPropagation()
+                    setHealthTarget(event.target.value)
+                  }}
+                >
+                  <option value="__avg__">平均延迟</option>
+                  {pingList.map((item) => (
+                    <option key={item.key || item.label} value={item.key || item.label}>{item.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={10} className="lumina-health-select-arrow" aria-hidden />
               </span>
               <strong className="tabular" style={{ color: currentMs === null ? 'var(--text-tertiary)' : currentMs < 60 ? 'var(--status-success)' : currentMs < 120 ? 'var(--status-warning)' : 'var(--status-error)' }}>
                 {currentMs === null ? '—' : `${Math.round(currentMs)}`}
                 <small>ms</small>
               </strong>
             </div>
-            <LuminaHealthBars buckets={avgPingSeries.buckets} kind="latency" />
+            <button
+              type="button"
+              className="lumina-health-bars-btn"
+              aria-label="查看延迟趋势"
+              title="点击查看延迟趋势"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
+                setHealthTrend('latency')
+              }}
+            >
+              <LuminaHealthBars buckets={pingCurrent.buckets} kind="latency" />
+            </button>
           </div>
           <div className="lumina-health-item">
             <div className="lumina-health-head">
@@ -1449,7 +1511,19 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
                 <small>%</small>
               </strong>
             </div>
-            <LuminaHealthBars buckets={avgPingSeries.buckets} kind="loss" />
+            <button
+              type="button"
+              className="lumina-health-bars-btn"
+              aria-label="查看丢包率趋势"
+              title="点击查看丢包率趋势"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
+                setHealthTrend('loss')
+              }}
+            >
+              <LuminaHealthBars buckets={pingCurrent.buckets} kind="loss" />
+            </button>
           </div>
         </div>
 
@@ -1476,6 +1550,16 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
           )}
         </footer>
       </article>
+      {healthTrend && (
+        <TrendDialog
+          serverIndex={index}
+          initial={[{ ...averagePing(pingList), key: '__avg__' }, ...pingList]}
+          targetKey={healthTarget}
+          title={pingCurrent.label}
+          mode={healthTrend}
+          close={() => setHealthTrend(null)}
+        />
+      )}
       {trafficOpen && <TrafficDialog server={server} close={() => setTrafficOpen(false)} />}
     </>
   )
