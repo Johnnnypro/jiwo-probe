@@ -1,11 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, Clock, Cpu, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, Rows3, Rows4, Search, Server, Sun, Trophy, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Database, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
-import { cycleTheme, getDarkOverride, getThemeOverride, setDarkOverride, useProbe } from './use-probe'
+import { getDarkOverride, getThemeOverride, setDarkOverride, setTheme, useProbe } from './use-probe'
 import { Twemoji } from './Twemoji'
 import { ServerDetail } from './ServerDetail'
 import { computeRemainingValue, formatMoney } from './value'
@@ -226,6 +226,86 @@ function RegionSelect({ regions, value, onChange }: { regions: string[]; value: 
               <button type="button" role="option" aria-selected={value === item} key={item} onClick={() => { onChange(item); setOpen(false) }}>
                 <Twemoji>{item}</Twemoji>
                 <span>{item}</span>
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </div>
+  )
+}
+
+const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
+  { value: 'pixel', label: '像素' },
+  { value: 'flat', label: '扁平' },
+  { value: 'anime', label: '动漫' },
+  { value: 'glass', label: '玻璃' },
+  { value: 'lumina', label: 'Lumina' },
+]
+
+function ThemeSelect({ value, onChange }: { value: ThemeName | null; onChange: (name: ThemeName | null) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const close = useCallback(() => setOpen(false), [])
+  const toggle = useCallback(() => {
+    if (!open && wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect()
+      const estHeight = Math.min(320, (THEME_OPTIONS.length + 1) * 29 + 10)
+      let top = rect.bottom + 5
+      if (top + estHeight > window.innerHeight - 8 && rect.top - estHeight - 5 > 0) {
+        top = rect.top - estHeight - 5
+      }
+      setPos({ top, left: rect.left, width: rect.width })
+    }
+    setOpen((v) => !v)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const handle = (event: MouseEvent) => {
+      if (wrapRef.current?.contains(event.target as Node)) return
+      if (menuRef.current?.contains(event.target as Node)) return
+      setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', handle)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open, close])
+
+  const selectedLabel = value ? THEME_OPTIONS.find((opt) => opt.value === value)?.label || value : '跟随主控'
+  return (
+    <div className="theme-select" ref={wrapRef}>
+      <button
+        type="button"
+        className="theme-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="切换主题"
+        title={`主题: ${selectedLabel}`}
+        onClick={toggle}
+      >
+        <Palette size={18} />
+        <ChevronDown size={13} className={open ? 'rotated' : ''} />
+      </button>
+      {open &&
+        createPortal(
+          <div className="region-menu theme-menu" ref={menuRef} style={{ top: pos.top, left: pos.left }} role="listbox">
+            <button type="button" role="option" aria-selected={value === null} onClick={() => { onChange(null); setOpen(false) }}>
+              <span>跟随主控</span>
+              {value === null && <Check size={14} className="theme-menu-check" />}
+            </button>
+            {THEME_OPTIONS.map((opt) => (
+              <button type="button" role="option" aria-selected={value === opt.value} key={opt.value} onClick={() => { onChange(opt.value); setOpen(false) }}>
+                <span>{opt.label}</span>
+                {value === opt.value && <Check size={14} className="theme-menu-check" />}
               </button>
             ))}
           </div>,
@@ -1093,6 +1173,314 @@ export function ReturnRouteBadges({ routes, telecomPaidPeer }: { routes: ProbeRe
   )
 }
 
+const LUMINA_QUOTA_SEGMENTS = 18
+// 每段取 OKLCH heat 渐变(绿→黄→橙→红)的 1/18 切片作为段色,与 LuminaPlus 的
+// trafficQuotaSegmentColor 语义一致:颜色只看段的位置,与主题无关。
+const LUMINA_HEAT_GRADIENT =
+  'linear-gradient(to right in oklch, oklch(0.72 0.16 150) 0%, oklch(0.72 0.16 150) 10%, oklch(0.8 0.18 128) 28%, oklch(0.86 0.18 110) 44%, oklch(0.8 0.18 85) 58%, oklch(0.72 0.19 62) 72%, oklch(0.65 0.21 40) 86%, oklch(0.6 0.22 27) 100%)'
+
+function luminaQuotaLitCount(fraction: number): number {
+  let count = 0
+  for (let i = 0; i < LUMINA_QUOTA_SEGMENTS; i++) {
+    if ((i + 0.5) / LUMINA_QUOTA_SEGMENTS <= fraction) count += 1
+    else break
+  }
+  return count
+}
+
+function LuminaMetricBar({
+  icon,
+  label,
+  value,
+  detail,
+  paint,
+  fraction,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  detail?: string
+  paint: string
+  fraction: number
+}) {
+  const fill = Math.max(0, Math.min(1, Number.isFinite(fraction) ? fraction : 0))
+  return (
+    <div className="lumina-metric" title={detail ? `${label} ${value} · ${detail}` : `${label} ${value}`}>
+      <div className="lumina-metric-head">
+        <span className="lumina-metric-label">
+          {icon}
+          <span>{label}</span>
+        </span>
+        <strong className="tabular">{value}</strong>
+      </div>
+      <div className="lumina-meter" aria-hidden>
+        <i style={{ '--lumina-fill': `${fill * 100}%`, '--lumina-paint': paint } as React.CSSProperties} />
+      </div>
+    </div>
+  )
+}
+
+function luminaPulseColor(level: number): string {
+  // 相对峰值分档: 无流量灰 → 低绿 → 中蓝 → 高琥珀 → 极高暖橙(琥珀+30%红, 避免刺眼红)
+  if (level <= 0.01) return 'var(--progress-bg)'
+  if (level < 0.3) return 'var(--status-success)'
+  if (level < 0.6) return 'var(--traffic-up)'
+  if (level < 0.85) return 'var(--status-warning)'
+  return 'color-mix(in srgb, var(--status-warning) 70%, var(--status-error) 30%)'
+}
+
+function LuminaTrafficPulse({ samples }: { samples: ProbeServer['daily_traffic'] }) {
+  const dots = 16
+  const list = (samples || []).slice(-dots)
+  const max = Math.max(1, ...list.map((item) => item.total ?? 0))
+  return (
+    <span className="lumina-traffic-pulse" aria-hidden>
+      {Array.from({ length: dots }, (_, index) => {
+        const sample = list[index - Math.max(0, dots - list.length)]
+        const value = sample?.total ?? 0
+        const level = value / max
+        return (
+          <span
+            key={index}
+            data-active={value > 0 ? 'true' : 'false'}
+            title={
+              sample
+                ? `${sample.date}\n上行 ${bytes(sample.uplink)}\n下行 ${bytes(sample.downlink)}`
+                : '无数据'
+            }
+            style={
+              {
+                '--pulse-h': `${Math.max(4, Math.round((0.45 + level * 0.95) * 20))}px`,
+                '--pulse-color': luminaPulseColor(level),
+                opacity: value > 0 ? 0.55 + level * 0.45 : 0.35,
+              } as React.CSSProperties
+            }
+          />
+        )
+      })}
+    </span>
+  )
+}
+
+function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'latency' | 'loss' }) {
+  const bars = buckets.slice(-LUMINA_QUOTA_SEGMENTS)
+  const values = bars.map((b) => (kind === 'latency' ? b.ms : b.loss)).filter((v) => v >= 0)
+  const max = Math.max(1, ...values)
+  return (
+    <span className="lumina-health-bars" data-kind={kind} aria-hidden>
+      {bars.map((bucket, index) => {
+        const raw = kind === 'latency' ? bucket.ms : bucket.loss
+        const height = raw >= 0 ? (raw / max) * 100 : 8
+        const tone = raw >= 0 ? Math.max(0, Math.min(1, raw / max)) : 0
+        return (
+          <span
+            key={index}
+            style={
+              {
+                '--bar-h': `${height}%`,
+                '--bar-c': `color-mix(in srgb, ${kind === 'latency' ? '#3b82f6' : '#8b5cf6'} ${20 + tone * 80}%, var(--progress-bg))`,
+              } as React.CSSProperties
+            }
+          />
+        )
+      })}
+    </span>
+  )
+}
+
+function ServerCardLumina({ server, index }: { server: ProbeServer; index: number }) {
+  const [trafficOpen, setTrafficOpen] = useState(false)
+  const name = server.name || `服务器 ${index + 1}`
+  const flag = regionFlag(server.region)
+  const isOffline = !server.online
+  const cores = server.cpu_cores ?? 0
+  const loadParts = (server.loadavg || '').split(/\s+/).map(Number).filter((v) => Number.isFinite(v))
+  const load1 = loadParts[0]
+  const loadFraction = load1 !== undefined && cores > 0 ? Math.max(0, Math.min(1, load1 / cores)) : 0
+  const avgPingSeries = averagePing(server.ping || [])
+  const currentMs = avgPingSeries.current_ms >= 0 ? avgPingSeries.current_ms : null
+  const lossAvg = avgLossPct(server)
+  const trafficFraction = server.traffic_limit ? pct(server.traffic_used, server.traffic_limit) / 100 : 0
+  const upRate = server.upload_speed
+  const downRate = server.download_speed
+  const trafficUp = server.cumulative_up
+  const trafficDown = server.cumulative_down
+  // 当前周期流量: API 只有 traffic_used 合计, 按历史累计比例拆分为上行/下行估算
+  const cycleRatioUp =
+    trafficUp !== undefined && trafficDown !== undefined && trafficUp + trafficDown > 0
+      ? trafficUp / (trafficUp + trafficDown)
+      : 0.5
+  const cycleUp = server.traffic_used !== undefined ? server.traffic_used * cycleRatioUp : undefined
+  const cycleDown = server.traffic_used !== undefined ? server.traffic_used * (1 - cycleRatioUp) : undefined
+  const expireValue = server.expires_at ? remainingDays(server.expires_at) : null
+  const renewText =
+    server.renewal_price !== undefined
+      ? server.renewal_price_cny !== undefined
+        ? `¥${server.renewal_price_cny.toFixed(2)}`
+        : `${server.renewal_currency || 'CNY'} ${server.renewal_price}`
+      : null
+
+  return (
+    <>
+      <article
+        className={`server-card lumina-card${isOffline ? ' is-offline' : ''}`}
+        onClick={() => { location.hash = `#/server/${index}` }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.hash = `#/server/${index}` } }}
+        title="点击查看详情"
+      >
+        <header className="lumina-card-header">
+          <div className="lumina-title-wrap">
+            <span className={server.online ? 'status online' : 'status'} />
+            <h2 className="lumina-title">
+              <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
+            </h2>
+            {regionLabel(server) && <span className="lumina-subtitle">{regionLabel(server)}</span>}
+          </div>
+          <span className="lumina-card-actions">
+            <span title={systemTitle(server)}>
+              <SystemIcon server={server} />
+            </span>
+            <span className={server.online ? 'lumina-state online' : 'lumina-state'}>
+              {server.online ? '在线' : '离线'}
+            </span>
+          </span>
+        </header>
+
+        <div className="lumina-metrics">
+          {server.cpu_pct !== undefined && (
+            <LuminaMetricBar icon={<Cpu size={13} />} label="CPU" value={`${server.cpu_pct.toFixed(1)}%`} detail={`${cores} 核`} paint="var(--progress-cpu)" fraction={server.cpu_pct / 100} />
+          )}
+          {server.mem_total !== undefined && (
+            <LuminaMetricBar icon={<MemoryStick size={13} />} label="内存" value={`${pct(server.mem_used, server.mem_total).toFixed(1)}%`} detail={`${bytes(server.mem_used)} / ${bytes(server.mem_total)}`} paint="var(--progress-memory)" fraction={pct(server.mem_used, server.mem_total) / 100} />
+          )}
+          {server.disk_total !== undefined && (
+            <LuminaMetricBar icon={<HardDrive size={13} />} label="磁盘" value={`${pct(server.disk_used, server.disk_total).toFixed(1)}%`} detail={`${bytes(server.disk_used)} / ${bytes(server.disk_total)}`} paint="var(--progress-disk)" fraction={pct(server.disk_used, server.disk_total) / 100} />
+          )}
+          {load1 !== undefined && (
+            <LuminaMetricBar icon={<Gauge size={13} />} label="负载" value={load1.toFixed(2)} detail={`${loadParts[1]?.toFixed(2) ?? '—'} / ${loadParts[2]?.toFixed(2) ?? '—'}`} paint="var(--progress-load)" fraction={loadFraction} />
+          )}
+        </div>
+
+        {(upRate !== undefined || downRate !== undefined) && (
+          <div className="lumina-traffic-section">
+            <div className="lumina-traffic-stat" title="上行速率与当前周期上行流量">
+              <span className="lumina-traffic-direction">
+                <ArrowUp size={15} />
+                上行
+              </span>
+              <strong className="tabular" style={{ color: 'var(--traffic-up)' }}>
+                {speed(upRate)}
+              </strong>
+              <small className="tabular">{cycleUp !== undefined ? `周期 ${bytes(cycleUp)}` : ''}</small>
+            </div>
+            <div className="lumina-traffic-stat" title="下行速率与当前周期下行流量">
+              <span className="lumina-traffic-direction">
+                <ArrowDown size={15} />
+                下行
+              </span>
+              <strong className="tabular" style={{ color: 'var(--traffic-down)' }}>
+                {speed(downRate)}
+              </strong>
+              <small className="tabular">{cycleDown !== undefined ? `周期 ${bytes(cycleDown)}` : ''}</small>
+            </div>
+            <div className="lumina-traffic-pulse-wrap">
+              <LuminaTrafficPulse samples={server.daily_traffic} />
+            </div>
+          </div>
+        )}
+
+        {server.traffic_used !== undefined && (
+          <div className="lumina-quota" title={`流量阈值 · 剩余 ${server.traffic_limit ? bytes(server.traffic_limit - server.traffic_used) : ''}`}>
+            <div className="lumina-quota-head">
+              <span className="lumina-quota-label">
+                <Database size={13} />
+                <span>剩余流量</span>
+                <strong>{server.traffic_limit ? bytes(Math.max(0, server.traffic_limit - server.traffic_used)) : bytes(server.traffic_used)}</strong>
+              </span>
+              <span className="lumina-quota-usage tabular">{server.traffic_limit ? `${bytes(server.traffic_used)} / ${bytes(server.traffic_limit)}` : ''}</span>
+            </div>
+            <div className="lumina-quota-track" aria-hidden>
+              {Array.from({ length: LUMINA_QUOTA_SEGMENTS }, (_, i) => {
+                const lit = i < luminaQuotaLitCount(trafficFraction)
+                return (
+                  <span
+                    key={i}
+                    className={lit ? 'lit' : ''}
+                    style={
+                      lit
+                        ? {
+                            background: LUMINA_HEAT_GRADIENT,
+                            backgroundSize: `${LUMINA_QUOTA_SEGMENTS * 100}% 100%`,
+                            backgroundPosition: `${(i / (LUMINA_QUOTA_SEGMENTS - 1)) * 100}% 0`,
+                          }
+                        : undefined
+                    }
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="lumina-health">
+          <div className="lumina-health-item">
+            <div className="lumina-health-head">
+              <span className="lumina-health-label">
+                <Clock3 size={13} />
+                延迟
+              </span>
+              <strong className="tabular" style={{ color: currentMs === null ? 'var(--text-tertiary)' : currentMs < 60 ? 'var(--status-success)' : currentMs < 120 ? 'var(--status-warning)' : 'var(--status-error)' }}>
+                {currentMs === null ? '—' : `${Math.round(currentMs)}`}
+                <small>ms</small>
+              </strong>
+            </div>
+            <LuminaHealthBars buckets={avgPingSeries.buckets} kind="latency" />
+          </div>
+          <div className="lumina-health-item">
+            <div className="lumina-health-head">
+              <span className="lumina-health-label">
+                <Unplug size={13} />
+                丢包率
+              </span>
+              <strong className="tabular" style={{ color: lossAvg < 0 ? 'var(--text-tertiary)' : lossAvg < 1 ? 'var(--status-success)' : lossAvg < 5 ? 'var(--status-warning)' : 'var(--status-error)' }}>
+                {lossAvg < 0 ? '—' : lossAvg.toFixed(1)}
+                <small>%</small>
+              </strong>
+            </div>
+            <LuminaHealthBars buckets={avgPingSeries.buckets} kind="loss" />
+          </div>
+        </div>
+
+        {!!server.return_routes?.length && (
+          <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} />
+        )}
+
+        <footer className="lumina-card-footer">
+          <span className="lumina-footer-stat" title="运行时间">
+            <RefreshCw size={13} />
+            <span>在线</span>
+            <strong className="tabular">{server.uptime !== undefined ? formatUptime(server.uptime) : '—'}</strong>
+          </span>
+          <span className={`lumina-footer-stat${expiring(server) || expired(server) ? ' warn' : ''}`} title="到期时间">
+            <Calendar size={13} />
+            <span>到期</span>
+            <strong className="tabular">{expireValue ?? '—'}</strong>
+          </span>
+          {renewText && (
+            <span className="lumina-price-chip" title="续费价格">
+              <CircleDollarSign size={12} />
+              {renewText}
+            </span>
+          )}
+        </footer>
+      </article>
+      {trafficOpen && <TrafficDialog server={server} close={() => setTrafficOpen(false)} />}
+    </>
+  )
+}
+
 function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
   const [trafficOpen, setTrafficOpen] = useState(false)
   const name = server.name || `服务器 ${index + 1}`
@@ -1654,7 +2042,7 @@ export function App() {
       return next
     })
   }
-  const [theme, setTheme] = useState<ThemeName | null>(() => getThemeOverride())
+  const [theme, setThemeState] = useState<ThemeName | null>(() => getThemeOverride())
   const [darkMode, setDarkMode] = useState<string | null>(() => getDarkOverride())
   const [detailIndex, setDetailIndex] = useState<number | null>(() => {
     const match = /^#\/server\/(\d+)$/.exec(window.location.hash)
@@ -1687,9 +2075,6 @@ export function App() {
     const next = isDark ? 'light' : 'dark'
     setDarkOverride(next)
     setDarkMode(next)
-  }
-  const toggleTheme = () => {
-    setTheme(cycleTheme())
   }
   const setMode = (next: 'card' | 'list' | 'mini') => {
     setView(next)
@@ -1760,9 +2145,7 @@ export function App() {
           <button aria-label="切换暗色模式" title={isDark ? '切换浅色模式' : '切换暗色模式'} onClick={toggleDark}>
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button aria-label="切换主题" title={`主题: ${theme || '跟随主控'}`} onClick={toggleTheme}>
-            <Palette size={18} />
-          </button>
+          <ThemeSelect value={theme} onChange={(name) => { setTheme(name); setThemeState(name) }} />
         </nav>
       </header>
       <section className="dashboard-summary">
@@ -1919,7 +2302,7 @@ export function App() {
           </label>
         </div>
       </section>
-      <main className={`servers ${view}`}>{visible.length ? view === 'card' ? visible.map((server) => <ServerCard key={server.name} server={server} index={servers.indexOf(server)} />) : view === 'mini' ? visible.map((server) => <ServerMiniCard key={server.name} server={server} index={servers.indexOf(server)} expanded={miniExpanded} />) : <ServerTable servers={visible} /> : <div className="empty">暂无符合条件的服务器</div>}</main>
+      <main className={`servers ${view}`}>{visible.length ? view === 'card' ? visible.map((server) => theme === 'lumina' ? <ServerCardLumina key={server.name} server={server} index={servers.indexOf(server)} /> : <ServerCard key={server.name} server={server} index={servers.indexOf(server)} />) : view === 'mini' ? visible.map((server) => <ServerMiniCard key={server.name} server={server} index={servers.indexOf(server)} expanded={miniExpanded} />) : <ServerTable servers={visible} /> : <div className="empty">暂无符合条件的服务器</div>}</main>
       <footer>
         Powered by{' '}
         <a href="https://github.com/mmwx-group" target="_blank" rel="noreferrer">
