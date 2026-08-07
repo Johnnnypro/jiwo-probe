@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Database, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Database, Gauge, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
@@ -443,7 +443,7 @@ export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
   }
 }
 
-type LeaderboardKey = 'cpu' | 'mem' | 'traffic' | 'speed' | 'uptime' | 'today' | 'loss' | 'cost' | 'value' | 'ping-cn' | 'ping-idc'
+type LeaderboardKey = 'cpu' | 'mem' | 'disk' | 'load' | 'traffic' | 'usage' | 'speed' | 'uptime' | 'today' | 'week' | 'loss-cn' | 'loss-idc' | 'cost' | 'expiry' | 'ping-cn' | 'ping-idc'
 
 const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
 
@@ -476,31 +476,45 @@ function todayTraffic(server: ProbeServer): number {
   return daily?.length ? daily[daily.length - 1].total ?? -1 : -1
 }
 
-function avgLossPct(server: ProbeServer): number {
-  const losses = (server.ping || []).map((item) => item.loss_pct).filter((value) => value >= 0)
-  return losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : -1
+function weekTraffic(server: ProbeServer): number {
+  const daily = server.daily_traffic || []
+  const week = daily.slice(-7)
+  return week.length ? week.reduce((a, b) => a + (b.total ?? 0), 0) : -1
 }
 
-function valueScore(server: ProbeServer): number {
-  const cost = monthlyCost(server)
-  if (cost <= 0) return -1
-  const memGb = server.mem_total ? server.mem_total / 1e9 : 0
-  const diskGb = server.disk_total ? server.disk_total / 1e9 : 0
-  const cores = server.cpu_cores ?? 0
-  const resources = cores * 5 + memGb + diskGb / 50
-  return resources > 0 ? resources / cost : -1
+function load1m(server: ProbeServer): number {
+  const parts = (server.loadavg || '').split(/\s+/).map(Number).filter((v) => Number.isFinite(v))
+  return parts.length ? parts[0] : -1
+}
+
+function daysLeft(server: ProbeServer): number {
+  if (!server.expires_at) return -1
+  return Math.ceil((new Date(`${server.expires_at}T23:59:59`).getTime() - Date.now()) / 86400000)
+}
+
+function avgLossPct(server: ProbeServer, cn: boolean): number {
+  const losses = (server.ping || [])
+    .filter((item) => isCnLabel(item.label) === cn)
+    .map((item) => item.loss_pct)
+    .filter((value) => value >= 0)
+  return losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : -1
 }
 
 const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactNode }[] = [
   { key: 'cpu', label: 'CPU', icon: <Cpu size={13} /> },
   { key: 'mem', label: '内存', icon: <MemoryStick size={13} /> },
+  { key: 'disk', label: '磁盘', icon: <HardDrive size={13} /> },
+  { key: 'load', label: '负载', icon: <Server size={13} /> },
   { key: 'traffic', label: '流量', icon: <PieChart size={13} /> },
+  { key: 'usage', label: '流量使用率', icon: <Database size={13} /> },
   { key: 'speed', label: '实时速度', icon: <ArrowDownUp size={13} /> },
   { key: 'uptime', label: '在线时长', icon: <Clock size={13} /> },
   { key: 'today', label: '今日流量', icon: <CalendarClock size={13} /> },
-  { key: 'loss', label: '丢包率', icon: <Activity size={13} /> },
+  { key: 'week', label: '近7日流量', icon: <TrendingUp size={13} /> },
+  { key: 'loss-cn', label: '内地丢包率', icon: <Activity size={13} /> },
+  { key: 'loss-idc', label: '海外丢包率', icon: <Wifi size={13} /> },
   { key: 'cost', label: '月成本', icon: <Wallet size={13} /> },
-  { key: 'value', label: '性价比', icon: <BadgeDollarSign size={13} /> },
+  { key: 'expiry', label: '到期时间', icon: <Calendar size={13} /> },
   { key: 'ping-cn', label: '内地延迟', icon: <Gauge size={13} /> },
   { key: 'ping-idc', label: '海外延迟', icon: <Globe2 size={13} /> },
 ]
@@ -515,31 +529,37 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
       setDesc((value) => !value)
     } else {
       setTab(key)
-      setDesc(true)
+      setDesc(key !== 'expiry') // 到期时间默认升序(最快到期在前)
     }
     setExpanded(null)
   }
   const pingTab = tab === 'ping-cn' || tab === 'ping-idc'
+  const lossTab = tab === 'loss-cn' || tab === 'loss-idc'
   const rows = useMemo(() => {
     const indexed = servers.map((server, index) => {
       const avg = averagePing(server.ping || [])
       const value =
         tab === 'cpu' ? server.cpu_pct ?? -1
         : tab === 'mem' ? pct(server.mem_used, server.mem_total)
+        : tab === 'disk' ? pct(server.disk_used, server.disk_total)
+        : tab === 'load' ? load1m(server)
         : tab === 'traffic' ? server.traffic_used ?? -1
+        : tab === 'usage' ? pct(server.traffic_used, server.traffic_limit)
         : tab === 'speed' ? (server.download_speed ?? 0) + (server.upload_speed ?? 0)
         : tab === 'uptime' ? server.uptime ?? -1
         : tab === 'today' ? todayTraffic(server)
-        : tab === 'loss' ? avgLossPct(server)
+        : tab === 'week' ? weekTraffic(server)
+        : tab === 'loss-cn' ? avgLossPct(server, true)
+        : tab === 'loss-idc' ? avgLossPct(server, false)
         : tab === 'cost' ? monthlyCost(server)
-        : tab === 'value' ? valueScore(server)
+        : tab === 'expiry' ? daysLeft(server)
         : tab === 'ping-cn' ? groupedPingAvg(server.ping || [], true)
         : tab === 'ping-idc' ? groupedPingAvg(server.ping || [], false)
         : avg.current_ms
-      const lines = pingTab
+      const lines = pingTab || lossTab
         ? (server.ping || [])
-            .filter((item) => isCnLabel(item.label) === (tab === 'ping-cn'))
-            .map((item) => ({ label: item.label, ms: item.current_ms }))
+            .filter((item) => isCnLabel(item.label) === (tab === 'ping-cn' || tab === 'loss-cn'))
+            .map((item) => ({ label: item.label, ms: item.current_ms, loss: item.loss_pct }))
         : []
       return { server, index, value, lines }
     })
@@ -549,14 +569,16 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
       .slice(0, 10)
   }, [servers, tab, desc, pingTab])
   const format = (value: number, server: ProbeServer) =>
-    tab === 'cpu' || tab === 'mem' ? `${value.toFixed(1)}%`
+    tab === 'cpu' || tab === 'mem' || tab === 'disk' ? `${value.toFixed(1)}%`
+    : tab === 'load' ? value.toFixed(2)
     : tab === 'traffic' ? bytes(value, false)
+    : tab === 'usage' ? `${value.toFixed(1)}%`
     : tab === 'speed' ? `↓${speed(server.download_speed ?? 0)} ↑${speed(server.upload_speed ?? 0)}`
     : tab === 'uptime' ? formatUptime(value)
-    : tab === 'today' ? bytes(value, false)
-    : tab === 'loss' ? `${value.toFixed(2)}%`
+    : tab === 'today' || tab === 'week' ? bytes(value, false)
+    : tab === 'loss-cn' || tab === 'loss-idc' ? `${value.toFixed(2)}%`
     : tab === 'cost' ? `¥${value.toFixed(0)}/月`
-    : tab === 'value' ? `${value.toFixed(1)} 分/元`
+    : tab === 'expiry' ? `${Math.round(value)} 天`
     : `${value.toFixed(0)} ms`
   return (
     <section className={`leaderboard-card ${open ? 'open' : ''}`}>
@@ -594,10 +616,10 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
                     </span>
                     <span className="lb-value">
                       {format(value, server)}
-                      {pingTab && lines.length > 0 && <em className="lb-lines-count">{lines.filter((l) => l.ms >= 0).length}线</em>}
+                      {(pingTab || lossTab) && lines.length > 0 && <em className="lb-lines-count">{lines.filter((l) => l.ms >= 0).length}线</em>}
                     </span>
                   </button>
-                  {pingTab && lines.length > 0 && (
+                  {(pingTab || lossTab) && lines.length > 0 && (
                     <button
                       type="button"
                       className={`lb-expand${expanded === index ? ' open' : ''}`}
@@ -608,12 +630,23 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
                     </button>
                   )}
                 </div>
-                {pingTab && expanded === index && (
+                {(pingTab || lossTab) && expanded === index && (
                   <div className="lb-lines">
                     {lines.map((line) => (
-                      <span key={line.label} className={line.ms < 0 ? 'timeout' : ''}>
+                      <span
+                        key={line.label}
+                        className={lossTab ? (line.loss < 0 ? 'timeout' : '') : line.ms < 0 ? 'timeout' : ''}
+                      >
                         {line.label}
-                        <b>{line.ms < 0 ? '超时' : `${line.ms.toFixed(0)} ms`}</b>
+                        <b>
+                          {lossTab
+                            ? line.loss < 0
+                              ? '—'
+                              : `${line.loss.toFixed(2)}%`
+                            : line.ms < 0
+                              ? '超时'
+                              : `${line.ms.toFixed(0)} ms`}
+                        </b>
                       </span>
                     ))}
                   </div>
@@ -1389,7 +1422,6 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
             <div className="lumina-traffic-stat" title="上行速率与当前周期上行流量">
               <span className="lumina-traffic-direction">
                 <ArrowUp size={15} />
-                上行
               </span>
               <strong className="tabular" style={{ color: 'var(--traffic-up)' }}>
                 {speed(upRate)}
@@ -1399,7 +1431,6 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
             <div className="lumina-traffic-stat" title="下行速率与当前周期下行流量">
               <span className="lumina-traffic-direction">
                 <ArrowDown size={15} />
-                下行
               </span>
               <strong className="tabular" style={{ color: 'var(--traffic-down)' }}>
                 {speed(downRate)}

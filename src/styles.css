@@ -140,6 +140,11 @@ button {
 .servers.list {
   display: block;
 }
+/* 卡片最大宽度：单卡/末行时不被 1fr 轨道拉宽 */
+.server-card,
+.lumina-card {
+  max-width: 480px;
+}
 .servers.mini {
   display: grid;
   grid-template-columns: 1fr;
@@ -3280,18 +3285,15 @@ footer a:hover {
   min-width: 0;
 }
 .lumina-traffic-direction {
-  position: relative;
-  display: inline-block;
-  padding-left: 17px;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
   color: var(--muted);
   font-size: 11px;
   flex-shrink: 0;
 }
 .lumina-traffic-direction svg {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  display: block;
 }
 .lumina-traffic-stat strong {
   font-size: 12.5px;
@@ -3492,7 +3494,7 @@ footer a:hover {
   background: color-mix(in srgb, var(--hover-bg, #f4f4f5) 38%, var(--surface));
 }
 .lumina-card .return-route-badges {
-  margin: -4px 0 0;
+  margin: 4px 0 0;
   padding: 0;
   border-top: 0;
   gap: 6px;
