@@ -1583,6 +1583,10 @@ footer a:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  align-items: start;
+}
+/* 只有两卡都展开时才等高拉伸；只开一个时另一个保持折叠高度（不联动） */
+.globe-row:has(.globe-card.open):has(.leaderboard-card.open) {
   align-items: stretch;
 }
 @media (max-width: 960px) {
