@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, ChevronLeft, Cpu, HardDrive, MemoryStick, PieChart, Wallet, Wifi, X } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, ChevronLeft, Cpu, HardDrive, MemoryStick, MoveHorizontal, PieChart, Wallet, Wifi, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbePingSeries, ProbeServer } from './types'
 import { Twemoji } from './Twemoji'
-import { Meter, ReturnRouteBadges, averagePing, bytes, expiring, expired, hasLeadingFlag, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
+import { Meter, ReturnRouteBadges, averagePing, bytes, expiring, expired, formatAxisDateTime, formatLossTick, hasLeadingFlag, HorizontalChart, lossScale, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
 import { computeRemainingValue, formatMoney } from './value'
 
 const cycleLabel = {
@@ -50,12 +50,19 @@ type RangeKey = (typeof RANGES)[number]['key']
 
 const colors = ['#8b5cf6', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
 
-function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: number; initial: ProbePingSeries[]; targetKey: string }) {
+function PingTrendChart({ serverIndex, initial, targetKey, mode }: { serverIndex: number; initial: ProbePingSeries[]; targetKey: string; mode: 'latency' | 'loss' }) {
   const [range, setRange] = useState<RangeKey>('1h')
   const [group, setGroup] = useState<'all' | 'cn' | 'idc'>('all')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [series, setSeries] = useState<ProbePingSeries[]>(initial)
   const [loading, setLoading] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const [isFit, setIsFit] = useState(true)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [timeMeta, setTimeMeta] = useState({
+    generatedAt: Math.floor(Date.now() / 1000),
+    bucketSec: 300,
+  })
 
   const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
   const groupSeries = useMemo(() => {
@@ -90,10 +97,18 @@ function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: numb
           success: boolean
           series?: ProbePingSeries
           all_series?: ProbePingSeries[]
+          generated_at?: number
+          bucket_sec?: number
         }>
       })
       .then((payload) => {
-        if (payload.success) setSeries([...(payload.series ? [{ ...payload.series, key: '__avg__', label: '平均' }] : []), ...(payload.all_series || [])])
+        if (payload.success) {
+          setSeries([...(payload.series ? [{ ...payload.series, key: '__avg__', label: '平均' }] : []), ...(payload.all_series || [])])
+          setTimeMeta({
+            generatedAt: payload.generated_at ?? Math.floor(Date.now() / 1000),
+            bucketSec: payload.bucket_sec ?? (range === '1h' ? 300 : range === '6h' ? 600 : 1800),
+          })
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
@@ -101,21 +116,43 @@ function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: numb
     return () => controller.abort()
   }, [range, serverIndex])
 
-  const rangeMeta = RANGES.find((item) => item.key === range) || RANGES[0]
   const rows = useMemo(
     () =>
       Array.from({ length: displaySeries[0]?.item.buckets.length || 0 }, (_, index) => {
         const row: Record<string, string | number | null> = {
-          time: rangeMeta.bucketLabel(index, displaySeries[0]?.item.buckets.length || 0),
+          time: formatAxisDateTime(
+            timeMeta.generatedAt -
+              (timeMeta.generatedAt % timeMeta.bucketSec) -
+              ((displaySeries[0]?.item.buckets.length || 0) - 1 - index) * timeMeta.bucketSec,
+            range === '1h',
+          ),
         }
         for (const { item } of displaySeries) {
           const bucket = item.buckets[index]
-          row[item.key || item.label] = bucket && bucket.ms >= 0 ? bucket.ms : null
+          const value = mode === 'loss' ? bucket?.loss : bucket?.ms
+          row[item.key || item.label] = value !== undefined && value >= 0 ? value : null
         }
         return row
       }),
-    [displaySeries, rangeMeta],
+    [displaySeries, timeMeta, mode, range],
   )
+  const dynamicLossScale = useMemo(() => lossScale(rows), [rows])
+  const fitZoom = () => {
+    const el = chartRef.current
+    if (!el || !rows.length) return
+    const target = el.clientWidth / (rows.length * 82)
+    setZoom(Math.max(0.05, Math.min(8, target)))
+    setIsFit(true)
+  }
+  // 每个时间范围默认适应屏幕宽度；用户手动 +/- 后不再自动覆盖
+  useEffect(() => {
+    if (!loading && displaySeries.length) {
+      const raf = requestAnimationFrame(fitZoom)
+      return () => cancelAnimationFrame(raf)
+    }
+    return undefined
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, loading])
 
   return (
     <>
@@ -135,26 +172,71 @@ function PingTrendChart({ serverIndex, initial, targetKey }: { serverIndex: numb
         <button type="button" className={group === 'idc' ? 'active' : ''} onClick={() => setGroup('idc')}>
           海外
         </button>
+        <span className="ranges-sep" />
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="缩小横轴"
+          title={`缩小横轴（当前 ${Math.round(zoom * 100)}%）`}
+          onClick={() => {
+            setZoom((value) => Math.max(0.05, Math.round((value - 0.1) * 10) / 10))
+            setIsFit(false)
+          }}
+        >
+          <ZoomOut size={13} />
+        </button>
+        <button
+          type="button"
+          className={`zoom-btn${isFit ? ' active' : ''}`}
+          aria-label="适应屏幕宽度"
+          title="适应屏幕宽度"
+          onClick={fitZoom}
+        >
+          <MoveHorizontal size={13} />
+        </button>
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="放大横轴"
+          title={`放大横轴（当前 ${Math.round(zoom * 100)}%）`}
+          onClick={() => {
+            setZoom((value) => Math.min(8, Math.round((value + 0.1) * 10) / 10))
+            setIsFit(false)
+          }}
+        >
+          <ZoomIn size={13} />
+        </button>
       </div>
-      <div className="detail-chart">
+      <div className="detail-chart" ref={chartRef}>
         {loading && <div className="loading-overlay">加载中…</div>}
         {!loading && !displaySeries.length && (
           <div className="chart-empty">
             该服务器未配置{group === 'cn' ? '内地' : '海外'}探测点
           </div>
         )}
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-            <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(rows.length / 8))} />
-            <YAxis width={52} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} unit="ms" />
-            <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(value, _name, item) => [`${Number(value).toFixed(0)}ms`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]} />
-            {displaySeries.map(({ item, index }) => {
-              const key = item.key || item.label
-              const active = key === targetKey
-              return <Line key={key} type="monotone" dataKey={key} name={item.label} stroke={key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length]} strokeWidth={active ? 2.5 : 1} strokeOpacity={active ? 1 : 0.45} dot={false} connectNulls={false} isAnimationActive={false} />
-            })}
-          </LineChart>
-        </ResponsiveContainer>
+        <HorizontalChart width={Math.max(120, rows.length * 82 * zoom)}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+              <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
+              <YAxis
+                width={52}
+                tick={{ fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                unit={mode === 'loss' ? undefined : 'ms'}
+                domain={mode === 'loss' ? [0, dynamicLossScale.max] : undefined}
+                ticks={mode === 'loss' ? dynamicLossScale.ticks : undefined}
+                tickFormatter={mode === 'loss' ? (value) => formatLossTick(Number(value)) : undefined}
+              />
+              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(value, _name, item) => [`${Number(value).toFixed(mode === 'loss' ? 1 : 0)}${mode === 'loss' ? '%' : 'ms'}`, series.find((line) => (line.key || line.label) === item.dataKey)?.label || String(item.dataKey)]} />
+              {displaySeries.map(({ item, index }) => {
+                const key = item.key || item.label
+                const active = key === targetKey
+                return <Line key={key} type="monotone" dataKey={key} name={item.label} stroke={key === '__avg__' ? 'var(--foreground, #2f2350)' : colors[index % colors.length]} strokeWidth={active ? 2.5 : 1} strokeOpacity={active ? 1 : 0.45} dot={false} connectNulls={false} isAnimationActive={false} />
+              })}
+            </LineChart>
+          </ResponsiveContainer>
+        </HorizontalChart>
       </div>
       {groupSeries.length > 0 && (
         <div className="legend">
@@ -199,6 +281,7 @@ function DetailMetric({ icon, label, value, percent }: { icon: React.ReactNode; 
 
 export function ServerDetail({ server, index, onClose }: { server: ProbeServer; index: number; onClose: () => void }) {
   const [selected, setSelected] = useState('__avg__')
+  const [trendMode, setTrendMode] = useState<'latency' | 'loss'>('latency')
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   const ping = server.ping || []
@@ -320,8 +403,18 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
           </div>
 
           {!!ping.length && (
-            <section className="detail-panel detail-panel-wide">
-              <h3>延迟趋势</h3>
+            <section className="detail-panel">
+              <div className="detail-panel-head">
+                <h3>{trendMode === 'latency' ? '延迟趋势' : '丢包趋势'}</h3>
+                <div className="trend-mode-switch" role="tablist" aria-label="趋势类型">
+                  <button type="button" role="tab" aria-selected={trendMode === 'latency'} className={trendMode === 'latency' ? 'active' : ''} onClick={() => setTrendMode('latency')}>
+                    延迟
+                  </button>
+                  <button type="button" role="tab" aria-selected={trendMode === 'loss'} className={trendMode === 'loss' ? 'active' : ''} onClick={() => setTrendMode('loss')}>
+                    丢包
+                  </button>
+                </div>
+              </div>
               <div className="detail-ping-picker">
                 <Wifi size={14} />
                 <select value={selected} onChange={(event) => setSelected(event.target.value)}>
@@ -333,7 +426,7 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
                   ))}
                 </select>
               </div>
-              <PingTrendChart serverIndex={index} initial={lines} targetKey={selected} />
+              <PingTrendChart serverIndex={index} initial={lines} targetKey={selected} mode={trendMode} />
             </section>
           )}
         </div>
