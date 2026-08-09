@@ -1512,7 +1512,7 @@ function ReturnRouteIcon({ premium }: { premium: boolean }) {
   return <Lottie animationData={premium ? premiumRouteAnimation : commonRouteAnimation} aria-hidden="true" className="route-badge-icon" loop />
 }
 
-export function ReturnRouteBadges({ routes, telecomPaidPeer, variant }: { routes: ProbeReturnRoute[]; telecomPaidPeer?: boolean; variant?: 'lumina' }) {
+export function ReturnRouteBadges({ routes, telecomPaidPeer, variant }: { routes: ProbeReturnRoute[]; telecomPaidPeer?: boolean; variant?: 'lumina' | 'anime' }) {
   const byCarrier = new Map(routes.map((route) => [route.carrier, route]))
   const items = (['telecom', 'unicom', 'mobile'] as const).map((carrier) => {
     const route = byCarrier.get(carrier)
@@ -1520,12 +1520,13 @@ export function ReturnRouteBadges({ routes, telecomPaidPeer, variant }: { routes
     const routeType = carrier === 'telecom' && telecomPaidPeer && detectedRouteType === '163' ? '163 PP' : detectedRouteType
     return { carrier, route, routeType, premium: goldRoutes.has(routeType.toUpperCase().replace(/[^A-Z0-9]/g, '')) }
   })
-  if (variant === 'lumina') {
-    // Lumina 扁平版勋章：无 Lottie 动画、无渐变、无阴影，细边框 + 低饱和色块（匹配 lumina tokens）
+  if (variant === 'lumina' || variant === 'anime') {
+    // 扁平版勋章：无 Lottie 动画、无渐变、无阴影。lumina=细边框低饱和 chip；anime=直角+紫色调 chip
+    const flat = variant === 'lumina' ? 'lumina-route' : 'anime-route'
     return (
-      <div className="lumina-route-badges">
+      <div className={`${flat}-badges`}>
         {items.map(({ carrier, route, routeType, premium }) => (
-          <span className={`lumina-route-chip${premium ? ' gold' : ''}`} key={carrier} title={route?.region ? `${route.region} · ${routeType}` : routeType}>
+          <span className={`${flat}-chip${premium ? ' gold' : ''}`} key={carrier} title={route?.region ? `${route.region} · ${routeType}` : routeType}>
             <small>{routeCarrierLabels[carrier]}</small>
             <strong>{routeType}</strong>
           </span>
@@ -1677,7 +1678,7 @@ function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'la
   )
 }
 
-function ServerCardLumina({ server, index }: { server: ProbeServer; index: number }) {
+function ServerCardLumina({ server, index }: { server: EnrichedServer; index: number }) {
   const [trafficOpen, setTrafficOpen] = useState(false)
   const [loadOpen, setLoadOpen] = useState(false)
   const [cpuOpen, setCpuOpen] = useState(false)
@@ -1702,11 +1703,18 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
   const downRate = server.download_speed
   const trafficUp = server.cumulative_up
   const trafficDown = server.cumulative_down
-  // 当前周期流量: API 只有 traffic_used 合计, 按历史累计比例拆分为上行/下行估算
+  // 当前周期流量: API 只有 traffic_used 合计, 按比例拆分为上行/下行估算。
+  // 优先用 cycle_daily_traffic(payload 原始周期内数据) 的每日上下行 sum 的比例
+  // (实测 17/40 台精确匹配计费口径, 比 cumulative 物理比例准一个量级), 缺失时回退 daily_traffic, 再回退 cumulative, 再回退 0.5
+  const cycleDaily = server.cycle_daily_traffic ?? server.daily_traffic ?? []
+  const dailyUp = cycleDaily.reduce((acc, item) => acc + (item.uplink ?? 0), 0)
+  const dailyDown = cycleDaily.reduce((acc, item) => acc + (item.downlink ?? 0), 0)
   const cycleRatioUp =
-    trafficUp !== undefined && trafficDown !== undefined && trafficUp + trafficDown > 0
-      ? trafficUp / (trafficUp + trafficDown)
-      : 0.5
+    dailyUp + dailyDown > 0
+      ? dailyUp / (dailyUp + dailyDown)
+      : trafficUp !== undefined && trafficDown !== undefined && trafficUp + trafficDown > 0
+        ? trafficUp / (trafficUp + trafficDown)
+        : 0.5
   const cycleUp = server.traffic_used !== undefined ? server.traffic_used * cycleRatioUp : undefined
   const cycleDown = server.traffic_used !== undefined ? server.traffic_used * (1 - cycleRatioUp) : undefined
   const expireValue = server.expires_at ? remainingDays(server.expires_at) : null
@@ -2040,7 +2048,7 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
         </div>
       )}
       {!!server.ping?.length && <PingPanel ping={server.ping} serverIndex={index} />}
-      {!!server.return_routes?.length && <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} />}
+      {!!server.return_routes?.length && <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} variant={document.documentElement.classList.contains('theme-anime') ? 'anime' : undefined} />}
       {(server.expires_at || server.renewal_price !== undefined) && (
         <div className="server-meta" onClick={(event) => event.stopPropagation()}>
           {server.expires_at &&
@@ -2514,8 +2522,71 @@ const EXTRA_LICENSE_BADGES = [
   { name: '👑 听海', display_name: '🌊 潮起无声' },
 ]
 
+// daily_traffic 跨周期历史: Worker cron 按天合并缓存(KV, 90天), 前端页面加载拉一次(日期变化时刷新),
+// 与 payload 的 daily_traffic(当前周期)合并 → 周期重置后脉冲图/日流量趋势仍有历史
+type DailyHistory = Record<string, Record<string, [number, number, number]>>
+function useDailyHistory(): DailyHistory | null {
+  const [history, setHistory] = useState<DailyHistory | null>(null)
+  useEffect(() => {
+    let stopped = false
+    let day = new Date().toISOString().slice(0, 10)
+    const load = async () => {
+      try {
+        const resp = await fetch('/api/daily-history', { cache: 'no-store' })
+        if (!resp.ok) return
+        const payload = (await resp.json()) as { success?: boolean; history?: DailyHistory }
+        if (stopped) return
+        const h = payload.history
+        if (h && Object.keys(h).length) setHistory(h)
+      } catch {
+        // 历史不可用不影响主流程
+      }
+    }
+    void load()
+    const timer = window.setInterval(() => {
+      const today = new Date().toISOString().slice(0, 10)
+      if (today !== day) {
+        day = today
+        void load()
+      }
+    }, 60_000)
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+    }
+  }, [])
+  return history
+}
+
+// 合并: 历史(按服务器名) 为底, payload 当天数据覆盖(最新值), 按日期排序。
+// 附加 cycle_daily_traffic = payload 原始周期内数据(周期拆分比例用, 避免被 90 天历史污染)
+type DailyRow = NonNullable<ProbeServer['daily_traffic']>[number]
+type EnrichedServer = ProbeServer & { cycle_daily_traffic?: DailyRow[] }
+function mergeDailyTraffic(servers: ProbeServer[], history: DailyHistory | null): EnrichedServer[] {
+  if (!history || !Object.keys(history).length) return servers
+  return servers.map((server) => {
+    const name = server.name?.trim()
+    if (!name) return server
+    const byDate = new Map<string, { uplink: number; downlink: number; total: number }>()
+    for (const [date, recs] of Object.entries(history)) {
+      const rec = recs?.[name]
+      if (rec) byDate.set(date, { uplink: rec[0], downlink: rec[1], total: rec[2] })
+    }
+    for (const row of server.daily_traffic || []) {
+      if (row?.date) byDate.set(row.date, { uplink: row.uplink ?? 0, downlink: row.downlink ?? 0, total: row.total ?? 0 })
+    }
+    if (!byDate.size) return server
+    const merged = [...byDate.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, rec]) => ({ date, uplink: rec.uplink, downlink: rec.downlink, total: rec.total }))
+    return { ...server, daily_traffic: merged, cycle_daily_traffic: server.daily_traffic || [] }
+  })
+}
+
 export function App() {
   const { data, error } = useProbe()
+  const dailyHistory = useDailyHistory()
+  const servers = useMemo(() => mergeDailyTraffic(data?.servers || [], dailyHistory), [data, dailyHistory])
   const [view, setView] = useState<'card' | 'list' | 'mini'>(() => (localStorage.getItem('probe-view') as 'card' | 'list' | 'mini') || 'card')
   const [miniExpanded, setMiniExpanded] = useState<boolean>(() => localStorage.getItem('probe-mini-expanded') === '1')
   const [filter, setFilter] = useState<'all' | 'online' | 'offline' | 'expiring' | 'expired' | 'renewal'>('all')
@@ -2601,7 +2672,6 @@ export function App() {
     )
   if (!data?.enabled) return <main className="center">探针尚未启用</main>
   const title = data.title?.trim() || '服务器状态'
-  const servers = data.servers || []
   const onlineCount = servers.filter((server) => server.online).length
   const expiringCount = servers.filter(expiring).length
   const expiredCount = servers.filter(expired).length
