@@ -1285,6 +1285,137 @@ export function LoadTrendChart({ serverIndex, containerClass = 'detail-chart' }:
   )
 }
 
+// 系统指标历史曲线（数据来自 /api/series?metric=system，beta3 上游原生支持）。metric='cpu' 单线 CPU%，'mem' 单线内存占用百分比
+const SYSTEM_LINES = {
+  cpu: { label: 'CPU 使用率', color: 'var(--progress-cpu, #3b82f6)' },
+  mem: { label: '内存使用率', color: 'var(--progress-memory, #8b5cf6)' },
+} as const
+export function SystemTrendChart({ serverIndex, metric, containerClass = 'detail-chart' }: { serverIndex: number; metric: 'cpu' | 'mem'; containerClass?: string }) {
+  const [range, setRange] = useState<RangeKey>('1h')
+  const [hidden, setHidden] = useState(false)
+  const [rows, setRows] = useState<{ ts: number; time: string; value: number | null }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [zoom, setZoom] = useState(1)
+  const [isFit, setIsFit] = useState(true)
+  const chartRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true)
+    void fetch(`/api/series?server=${serverIndex}&range=${range}&metric=system`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.json() as Promise<{ success: boolean; series?: Record<string, { t: number; value: number }[]> }>
+      })
+      .then((payload) => {
+        if (payload.success && payload.series) {
+          const raw = payload.series
+          const pts =
+            metric === 'cpu'
+              ? raw.cpu_pct || []
+              : (raw.mem_used || []).map((u, i) => {
+                  const t = raw.mem_total?.[i]
+                  return { t: u.t, value: t && t.value > 0 ? (u.value / t.value) * 100 : null }
+                })
+          setRows(pts.map((p) => ({ ts: p.t, time: formatAxisDateTime(p.t, range === '1h'), value: p.value ?? null })))
+        } else {
+          setRows([])
+        }
+      })
+      .catch(() => setRows([]))
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [range, serverIndex, metric])
+
+  const fitZoom = () => {
+    const el = chartRef.current
+    if (!el || !rows.length) return
+    const target = el.clientWidth / (rows.length * 82)
+    setZoom(Math.max(0.05, Math.min(8, target)))
+    setIsFit(true)
+  }
+  useEffect(() => {
+    if (!loading && rows.length) {
+      const raf = requestAnimationFrame(fitZoom)
+      return () => cancelAnimationFrame(raf)
+    }
+    return undefined
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, loading])
+
+  const line = SYSTEM_LINES[metric]
+  return (
+    <>
+      <div className="ranges">
+        {ranges.map((item) => (
+          <button type="button" className={range === item.key ? 'active' : ''} onClick={() => setRange(item.key)} key={item.key}>
+            {item.label}
+          </button>
+        ))}
+        <span className="ranges-sep" />
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="缩小横轴"
+          title={`缩小横轴（当前 ${Math.round(zoom * 100)}%）`}
+          onClick={() => {
+            setZoom((value) => Math.max(0.05, Math.round((value - 0.1) * 10) / 10))
+            setIsFit(false)
+          }}
+        >
+          <ZoomOut size={13} />
+        </button>
+        <button type="button" className={`zoom-btn${isFit ? ' active' : ''}`} aria-label="适应屏幕宽度" title="适应屏幕宽度" onClick={fitZoom}>
+          <MoveHorizontal size={13} />
+        </button>
+        <button
+          type="button"
+          className="zoom-btn"
+          aria-label="放大横轴"
+          title={`放大横轴（当前 ${Math.round(zoom * 100)}%）`}
+          onClick={() => {
+            setZoom((value) => Math.min(8, Math.round((value + 0.1) * 10) / 10))
+            setIsFit(false)
+          }}
+        >
+          <ZoomIn size={13} />
+        </button>
+      </div>
+      <div className={containerClass} ref={chartRef}>
+        {loading && <div className="loading-overlay">加载中…</div>}
+        {!loading && !rows.length && <div className="chart-empty">暂无{metric === 'cpu' ? 'CPU' : '内存'}历史</div>}
+        <HorizontalChart width={Math.max(120, rows.length * 82 * zoom)}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+              <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
+              <YAxis width={40} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, metric === 'mem' ? 100 : 'auto']} />
+              <Tooltip
+                contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                formatter={(value, _name, item) => [item.dataKey === 'value' ? `${Number(value).toFixed(1)}%` : Number(value).toFixed(1), line.label]}
+                labelFormatter={(_value, payload) => formatAxisDateTime(Number((payload?.[0]?.payload as { ts?: number } | undefined)?.ts ?? 0), true)}
+              />
+              {!hidden && (
+                <Line type="monotone" dataKey="value" name={line.label} stroke={line.color} strokeWidth={2.5} dot={false} connectNulls={false} isAnimationActive={false} />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </HorizontalChart>
+      </div>
+      <div className="legend">
+        <button type="button" className={hidden ? 'off' : ''} onClick={() => setHidden((v) => !v)} title={hidden ? '点击显示' : '点击隐藏'}>
+          <i style={{ background: line.color }} />
+          {line.label}
+        </button>
+      </div>
+    </>
+  )
+}
+
 function LoadTrendDialog({ serverIndex, title, close }: { serverIndex: number; title: string; close: () => void }) {
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
@@ -1296,6 +1427,23 @@ function LoadTrendDialog({ serverIndex, title, close }: { serverIndex: number; t
           </button>
         </header>
         <LoadTrendChart serverIndex={serverIndex} containerClass="chart" />
+      </section>
+    </div>,
+    document.body,
+  )
+}
+
+function SystemTrendDialog({ serverIndex, title, metric, close }: { serverIndex: number; title: string; metric: 'cpu' | 'mem'; close: () => void }) {
+  return createPortal(
+    <div className="modal-backdrop" role="presentation" onMouseDown={close}>
+      <section className="modal" onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <h2>{title} · {metric === 'cpu' ? 'CPU' : '内存'}趋势</h2>
+          <button aria-label="关闭" onClick={close}>
+            ×
+          </button>
+        </header>
+        <SystemTrendChart serverIndex={serverIndex} metric={metric} containerClass="chart" />
       </section>
     </div>,
     document.body,
@@ -1464,17 +1612,15 @@ function LuminaTrafficPulse({ samples }: { samples: ProbeServer['daily_traffic']
     <span className="lumina-traffic-pulse" aria-hidden>
       {Array.from({ length: dots }, (_, index) => {
         const sample = list[index - Math.max(0, dots - list.length)]
-        const value = sample?.total ?? 0
+        // 无数据的天(历史不足16天): 渲染空白格, 不画灰条(避免"没流量"假象)
+        if (!sample) return <span key={index} className="lumina-pulse-empty" />
+        const value = sample.total ?? 0
         const level = value / max
         return (
           <span
             key={index}
             data-active={value > 0 ? 'true' : 'false'}
-            title={
-              sample
-                ? `${sample.date}\n上行 ${bytes(sample.uplink)}\n下行 ${bytes(sample.downlink)}`
-                : '无数据'
-            }
+            title={`${sample.date}\n上行 ${bytes(sample.uplink)}\n下行 ${bytes(sample.downlink)}`}
             style={
               {
                 '--pulse-h': `${Math.max(4, Math.round((0.45 + level * 0.95) * 20))}px`,
@@ -1534,6 +1680,8 @@ function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'la
 function ServerCardLumina({ server, index }: { server: ProbeServer; index: number }) {
   const [trafficOpen, setTrafficOpen] = useState(false)
   const [loadOpen, setLoadOpen] = useState(false)
+  const [cpuOpen, setCpuOpen] = useState(false)
+  const [memOpen, setMemOpen] = useState(false)
   const [healthTarget, setHealthTarget] = useState('__avg__')
   const [healthTrend, setHealthTrend] = useState<'latency' | 'loss' | null>(null)
   const name = server.name || `服务器 ${index + 1}`
@@ -1599,10 +1747,34 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
 
         <div className="lumina-metrics">
           {server.cpu_pct !== undefined && (
-            <LuminaMetricBar icon={<Cpu size={13} />} label="CPU" value={`${server.cpu_pct.toFixed(1)}%`} detail={`${cores} 核`} paint="var(--progress-cpu)" fraction={server.cpu_pct / 100} />
+            <button
+              type="button"
+              className="lumina-metric-btn"
+              aria-label="查看CPU趋势"
+              title="点击查看CPU趋势"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
+                setCpuOpen(true)
+              }}
+            >
+              <LuminaMetricBar icon={<Cpu size={13} />} label="CPU" value={`${server.cpu_pct.toFixed(1)}%`} detail={`${cores} 核`} paint="var(--progress-cpu)" fraction={server.cpu_pct / 100} />
+            </button>
           )}
           {server.mem_total !== undefined && (
-            <LuminaMetricBar icon={<MemoryStick size={13} />} label="内存" value={`${pct(server.mem_used, server.mem_total).toFixed(1)}%`} detail={`${bytes(server.mem_used)} / ${bytes(server.mem_total)}`} paint="var(--progress-memory)" fraction={pct(server.mem_used, server.mem_total) / 100} />
+            <button
+              type="button"
+              className="lumina-metric-btn"
+              aria-label="查看内存趋势"
+              title="点击查看内存趋势"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
+                setMemOpen(true)
+              }}
+            >
+              <LuminaMetricBar icon={<MemoryStick size={13} />} label="内存" value={`${pct(server.mem_used, server.mem_total).toFixed(1)}%`} detail={`${bytes(server.mem_used)} / ${bytes(server.mem_total)}`} paint="var(--progress-memory)" fraction={pct(server.mem_used, server.mem_total) / 100} />
+            </button>
           )}
           {server.disk_total !== undefined && (
             <LuminaMetricBar icon={<HardDrive size={13} />} label="磁盘" value={`${pct(server.disk_used, server.disk_total).toFixed(1)}%`} detail={`${bytes(server.disk_used)} / ${bytes(server.disk_total)}`} paint="var(--progress-disk)" fraction={pct(server.disk_used, server.disk_total) / 100} />
@@ -1800,6 +1972,8 @@ function ServerCardLumina({ server, index }: { server: ProbeServer; index: numbe
       )}
       {trafficOpen && <TrafficDialog server={server} close={() => setTrafficOpen(false)} />}
       {loadOpen && <LoadTrendDialog serverIndex={index} title={name} close={() => setLoadOpen(false)} />}
+      {cpuOpen && <SystemTrendDialog serverIndex={index} title={name} metric="cpu" close={() => setCpuOpen(false)} />}
+      {memOpen && <SystemTrendDialog serverIndex={index} title={name} metric="mem" close={() => setMemOpen(false)} />}
     </>
   )
 }
