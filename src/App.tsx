@@ -2555,8 +2555,7 @@ function ProbeLicenseNameplate({ name, displayName }: { name?: string; displayNa
   )
 }
 
-// 许可证铭牌：仅展示主控 API 返回的 license_badge（不硬编码任何私有勋章）。
-// 数组顺序即页面展示顺序。
+// 许可证铭牌：仅展示主控 API 返回的 license_badge。
 
 // daily_traffic 跨周期历史: Worker cron 按天合并缓存(KV, 90天), 前端页面加载拉一次(日期变化时刷新),
 // 与 payload 的 daily_traffic(当前周期)合并 → 周期重置后脉冲图/日流量趋势仍有历史
@@ -2919,12 +2918,15 @@ export function App() {
           MMWX Group
         </a>
       </footer>
-      {data.license_badge && (
+      {(data.license_badge || EXTRA_LICENSE_BADGES.length > 0) && (
         <div className="probe-license-footer">
           {(() => {
-            const live = Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]
-            return live
-              .filter((badge, index, all) => all.findIndex((item) => (item.name || item.display_name) === (badge.name || badge.display_name)) === index)
+            const live = data.license_badge ? (Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]) : []
+            const keyOf = (badge: { name?: string; display_name?: string }) => badge.name || badge.display_name || ''
+            const merged = EXTRA_LICENSE_BADGES.map((badge) => live.find((item) => keyOf(item) === keyOf(badge)) || badge)
+            const extras = live.filter((badge) => !EXTRA_LICENSE_BADGES.some((item) => keyOf(item) === keyOf(badge)))
+            return [...merged, ...extras]
+              .filter((badge, index, all) => all.findIndex((item) => keyOf(item) === keyOf(badge)) === index)
               .map((badge, index) => (
                 <ProbeLicenseNameplate key={index} name={badge.name} displayName={badge.display_name} />
               ))
