@@ -9,6 +9,13 @@ function normalizeTheme(value?: string): ThemeName {
   return value === 'anime' || value === 'flat' || value === 'glass' || value === 'lumina' ? value : 'pixel'
 }
 
+// 主控可能下发自定义主题名（theme-{name} 类）。内置 5 主题走主题系统；
+// 未知主题名照常挂 theme-{name} 类——站长可在自己的 CSS 里写 .theme-{name} 覆盖，
+// 没写则回退到默认(pixel)样式。返回值 = 是否内置主题（供 UI 判断"跟随主控"时如何显示）。
+export function isBuiltinTheme(value?: string): boolean {
+  return value === 'pixel' || value === 'flat' || value === 'anime' || value === 'glass' || value === 'lumina'
+}
+
 export function applyAppearance(input?: ProbeAppearance) {
   const cached = (() => {
     try {
@@ -19,9 +26,18 @@ export function applyAppearance(input?: ProbeAppearance) {
   })()
   const appearance = input || cached || { theme: 'pixel', color_mode: 'light' }
   const themeOverride = localStorage.getItem(THEME_OVERRIDE) as ThemeName | null
-  const theme = themeOverride || normalizeTheme(appearance.theme)
+  // 用户手动选择的内置主题优先；否则用主控下发的主题名。
+  // 内置主题名大小写不敏感归一化（主控可能下发 Lumina/LUMINA → lumina）；
+  // 自定义主题名原样保留挂 theme-{name}（站长 CSS 怎么写就怎么匹配）。
+  const raw = themeOverride || appearance.theme || 'pixel'
+  const lower = raw.toLowerCase()
+  const theme = isBuiltinTheme(lower) ? lower : raw
   const root = document.documentElement
-  root.classList.remove('theme-pixel', 'theme-flat', 'theme-anime', 'theme-glass', 'theme-lumina', 'dark')
+  // 清理所有 theme-* 类（含可能的自定义主题类），再挂当前主题
+  for (const cls of [...root.classList]) {
+    if (cls.startsWith('theme-')) root.classList.remove(cls)
+  }
+  root.classList.remove('dark')
   root.classList.add(`theme-${theme}`)
   const darkOverride = localStorage.getItem(DARK_OVERRIDE)
   let dark: boolean
@@ -55,6 +71,21 @@ const THEME_CYCLE: ThemeName[] = ['pixel', 'flat', 'anime', 'glass', 'lumina']
 
 export function getThemeOverride(): ThemeName | null {
   return localStorage.getItem(THEME_OVERRIDE) as ThemeName | null
+}
+
+// 当前生效主题: 用户手动 override 优先，否则主控下发的 theme（内置名归一化小写，自定义名原样）。
+// 视图分支（如 theme==='lumina' 渲染 ServerCardLumina）应读这个，而不是只看 override。
+export function getActiveTheme(): string {
+  const override = getThemeOverride()
+  if (override) return override
+  try {
+    const cached = JSON.parse(localStorage.getItem(APPEARANCE_CACHE) || 'null') as ProbeAppearance | null
+    const raw = cached?.theme || 'pixel'
+    const lower = raw.toLowerCase()
+    return isBuiltinTheme(lower) ? lower : raw
+  } catch {
+    return 'pixel'
+  }
 }
 
 export function cycleTheme(): ThemeName | null {
