@@ -180,7 +180,7 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 
 ## 上游同步
 
-本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
+本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）；`be3d03c`（表格网速列改纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，已跳过。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
 git fetch origin
