@@ -1,6 +1,6 @@
 # Jiwo Probe（鸡窝状态站）
 
-妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `2dc05b3`）。
+妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（基线 `2dc05b3`，2026-08-10 已吸收上游探针表格优化 `5ce90c0`）。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chnnic/jiwo-probe)
 
@@ -21,6 +21,7 @@
 
 - **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina` 循环）——复刻 Komari Theme LuminaPlus 卡片：浅色阶分层 + 描边（无阴影），健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
 - **液态玻璃主题**（第 4 主题）——渐变玻璃面 + 斜向镜面光泽 + 顶部镜面高光 + 4 层光斑背景，真液态玻璃而非毛玻璃
+- **主控自定义主题**——主控后台可下发任意主题名，探针原样挂 `theme-{name}` CSS 类（站长可在探针 CSS 里写 `:root.theme-{name}` 覆盖，无对应样式自动回退默认）；内置主题名大小写不敏感归一化（主控下发 `Lumina` 正确应用本地 lumina 主题）；用户手动切换主题优先于主控下发
 - 做过性能优化：backdrop-filter 合成层从 50+ 降到 2 层（仅顶部栏和遮罩），低 CPU / 低耗电，手机不发烫
 
 ### 数据与交互增强
@@ -36,6 +37,10 @@
 - **CPU / 内存历史曲线**——详情页新增"CPU""内存"tab：CPU 使用率 / 内存占用百分比历史（1h/6h/24h 档位 + 缩放适应），数据来自上游 series `metric=system`（主控 beta3 原生支持）
 - **剩余价值计算**——日成本 × 剩余天数（含当天口径），支持月/季/半年/年周期多币种
 - **三许可证铭牌底栏**——手机端单行横滚，不占空间
+- **主控周期字段全面接线**——`traffic_used_up/down`（周期上下行，物理口径，up+down=total 与 daily_traffic 逐日求和精确一致）、`traffic_used_total`（周期总流量，重启不清零）、`period_start/end`（计费周期边界）：卡片/Lumina 卡周期上下行直读物理口径、详情页累计流量改周期统计、Lumina 卡剩余流量后显示重置倒计时 + 重置日
+- **表格流量列增强**——列表视图流量格显示 `↑ 上行 · ↓ 下行`（周期物理口径）+ 周期区间（MM-DD — MM-DD），点击弹出日流量趋势图
+- **负载历史 KV 改 name 关联**——原按服务器数组下标存储，主控增删/重排服务器会导致曲线错位；改为按服务器 name 存储/查询，换 IP、增删顺序均不影响（仅改名会断，待主控提供 server_id 根治）
+- **bytes 格式化去冗余 .0**——`1000.0 GB` → `1000 GB`（含四舍五入后恰为 X.0 的值），非整数精度不变
 
 ### 手机端适配
 
@@ -175,7 +180,7 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 
 ## 上游同步
 
-本 fork 基于上游 `af0d6f0`。若上游有更新，可手动合并（注意 `src/styles.css` 和 `src/types.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
+本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
 git fetch origin
