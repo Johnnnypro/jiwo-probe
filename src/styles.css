@@ -3374,7 +3374,7 @@ footer a:hover {
 }
 .lumina-quota-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
@@ -3386,6 +3386,16 @@ footer a:hover {
   color: var(--muted);
   font-size: 11px;
 }
+.lumina-quota-reset {
+  color: var(--muted);
+  font-size: 10px;
+  opacity: 0.85;
+  white-space: nowrap;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
 .lumina-quota-label strong {
   color: var(--foreground);
   font-size: 12px;
@@ -3396,7 +3406,7 @@ footer a:hover {
 }
 .lumina-quota-usage {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 12px;
   white-space: nowrap;
 }
 .lumina-quota-track {
