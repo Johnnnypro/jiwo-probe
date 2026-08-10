@@ -17,11 +17,32 @@
 - **卡片模式**——带 Ping 趋势、回程勋章、到期续费链接的完整卡片
 - **列表模式**——可排序表格（CPU/内存/流量/延迟等列点击排序），带迷你趋势按钮
 
-### 主题系统（五套，一键切换）
+### 主题系统（六套 + Ran 金工界面，一键切换）
 
-- **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina` 循环）——复刻 Komari Theme LuminaPlus 卡片：浅色阶分层 + 描边（无阴影），健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
+- **Ran 主题**（第 6 主题）——**完整复刻 Komari-Ran-Theme「岚」**（精密金工质感，原版整体移植 + 数据适配层，非换皮）：
+  - 完整界面：Sidebar 导航（Overview / Nodes / Hub / Traffic / Billing / Geo Map）+ Topbar（⌘K 搜索 / V1·V2 布局切换 / 主题下拉）+ Footer
+  - V1 经典卡片网格 / V2 信息盘式仪表盘（Cluster Health Score、24h 吞吐大图、Top Talkers、Alerts/Incidents 面板）
+  - HeroStats 顶部 4 大数（在线 / 上行速率 / 下行速率 / 累计流量，带 sparkline）
+  - 节点卡：金工质感全套（双 hairline 倒角、凹陷读数窗、蚀刻铭牌字、BlockMeter 分段条、状态扫光），出站/入站显示**当前周期流量**（周期上行/下行，物理口径）
+  - NodeDetail 详情页、Traffic 全网流量、Billing 订阅汇总（月成本 / 年估算 / 到期提醒 / 多币种 + 汇率）、访客信息浮卡（每会话一次）
+  - **10 个主题变体**：墨石深（night）/ 雾色浅（mist）/ 烬枣红（ember）/ 樱粉（sakura）/ 薰衣草（lavender）等，右上角切换
+  - 懒加载分包（首屏 index 196KB 不变），访客接口走 CF 请求头（零第三方依赖）
+- **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina → ran` 循环）——复刻 Komari Theme LuminaPlus 卡片：浅色阶分层 + 描边（无阴影），健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
 - **液态玻璃主题**（第 4 主题）——渐变玻璃面 + 斜向镜面光泽 + 顶部镜面高光 + 4 层光斑背景，真液态玻璃而非毛玻璃
 - **主控自定义主题**——主控后台可下发任意主题名，探针原样挂 `theme-{name}` CSS 类（站长可在探针 CSS 里写 `:root.theme-{name}` 覆盖，无对应样式自动回退默认）；内置主题名大小写不敏感归一化（主控下发 `Lumina` 正确应用本地 lumina 主题）；用户手动切换主题优先于主控下发
+
+#### 主控后台切换主题（核心能力）
+
+**主控后台 → 主题设置 → 输入主题名**，全站访客实时跟随：
+
+| 主控输入 | 访客看到 |
+|---|---|
+| `Ran` / `RAN` / `ran` | Ran 金工界面 + 默认主题（ran-mist 雾色浅） |
+| `Ran-Night` / `Ran-Mist` / `Ran-Ember` 等 | Ran 界面 + 对应变体（墨石深 / 雾色浅 / 烬枣红 …） |
+| `Lumina` / `Pixel` / `Flat` / `Anime` / `Glass` | 经典界面 + 对应主题 |
+| 其他自定义名 | 经典界面 + `theme-{name}` 类（站长自写 CSS 接管） |
+
+优先级：**主控明确下发变体 > 用户手动选过（浏览器记忆）> 本地缓存 > 默认**。探针实时监听主控下发（WS/轮询新帧），切换无需刷新页面。
 - 做过性能优化：backdrop-filter 合成层从 50+ 降到 2 层（仅顶部栏和遮罩），低 CPU / 低耗电，手机不发烫
 
 ### 数据与交互增强
@@ -180,7 +201,7 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 
 ## 上游同步
 
-本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）；`be3d03c`（表格网速列改纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，已跳过。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
+本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）；`be3d03c`（表格网速列改纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，已跳过。2026-08-10 完整移植 Komari-Ran-Theme（`src/ran/` 原版 125 文件 + mmwx-adapter 数据适配层，参考 [eutopiazen/mmwx-probe](https://github.com/eutopiazen/mmwx-probe) 的集成方式）。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
 git fetch origin
