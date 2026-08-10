@@ -2497,7 +2497,6 @@ footer a:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  align-items: start;
 }
 .detail-cols > div {
   border-radius: var(--radius);
@@ -2507,6 +2506,7 @@ footer a:hover {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+  height: 100%;
 }
 .detail-panel-head {
   display: flex;
@@ -2562,6 +2562,15 @@ footer a:hover {
 .detail-metric-head strong {
   font-size: 12px;
   white-space: nowrap;
+}
+.detail-metric-sub {
+  margin-top: 3px;
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .detail-loadavg {
   display: flex;
