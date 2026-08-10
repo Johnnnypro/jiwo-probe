@@ -26,7 +26,7 @@ const COLOR_BY_STATUS: Record<NodeStatus, string> = {
 
 function deriveStatus(r?: KomariRecord): NodeStatus {
   if (!r || r.online === false) return 'bad'
-  if ((r.cpu ?? 0) > 80 || (r.loss ?? 0) > 5) return 'warn'
+  if ((r.cpu ?? 0) > 80 || (r.loss ?? 0) >= 5) return 'warn'
   return 'good'
 }
 
@@ -252,19 +252,39 @@ function NodeCardCompact_({ node, record, netSpark = [], pingSpark = [], pingLos
 
       {/* up/down */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: contentFs(11), color: 'var(--accent-bright)', fontFamily: 'var(--font-mono)' }}>↑ 上行</span>
-            <span className="mono tnum" style={{ fontSize: contentFs(11), color: 'var(--fg-0)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', minWidth: 0, gap: 6 }}>
+            <span style={{ fontSize: contentFs(11), color: 'var(--accent-bright)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>↑ 上行</span>
+            <span
+              className="mono tnum"
+              style={{
+                fontSize: contentFs(11),
+                color: 'var(--fg-0)',
+                marginLeft: 'auto',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {formatBps(record?.network_tx)}
             </span>
           </div>
           <Sparkline data={netSpark} width={150} height={14} color="var(--accent)" thickness={1} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: contentFs(11), color: 'var(--signal-good)', fontFamily: 'var(--font-mono)' }}>↓ 下行</span>
-            <span className="mono tnum" style={{ fontSize: contentFs(11), color: 'var(--fg-0)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', minWidth: 0, gap: 6 }}>
+            <span style={{ fontSize: contentFs(11), color: 'var(--signal-good)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>↓ 下行</span>
+            <span
+              className="mono tnum"
+              style={{
+                fontSize: contentFs(11),
+                color: 'var(--fg-0)',
+                marginLeft: 'auto',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {formatBps(record?.network_rx)}
             </span>
           </div>
@@ -280,13 +300,13 @@ function NodeCardCompact_({ node, record, netSpark = [], pingSpark = [], pingLos
 
       {/* period traffic (current billing cycle up/down) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: contentFs(11) }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--fg-2)', fontFamily: 'var(--font-mono)' }}>周期上行</span>
-          <span className="mono tnum" style={{ color: 'var(--fg-0)' }}>{formatBytes(record?.traffic_period_up)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', minWidth: 0, gap: 6 }}>
+          <span style={{ color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>周期上行</span>
+          <span className="mono tnum" style={{ color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatBytes(record?.traffic_period_up)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: 'var(--fg-2)', fontFamily: 'var(--font-mono)' }}>周期下行</span>
-          <span className="mono tnum" style={{ color: 'var(--fg-0)' }}>{formatBytes(record?.traffic_period_down)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', minWidth: 0, gap: 6 }}>
+          <span style={{ color: 'var(--fg-2)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>周期下行</span>
+          <span className="mono tnum" style={{ color: 'var(--fg-0)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatBytes(record?.traffic_period_down)}</span>
         </div>
       </div>
 
@@ -316,7 +336,7 @@ function NodeCardCompact_({ node, record, netSpark = [], pingSpark = [], pingLos
               className="mono tnum"
               style={{
                 fontSize: contentFs(12),
-                color: ((record?.loss ?? pingStats?.loss) ?? 0) > 1 ? 'var(--signal-warn)' : 'var(--signal-good)',
+                color: ((record?.loss ?? pingStats?.loss) ?? 0) >= 1 ? 'var(--signal-warn)' : 'var(--signal-good)',
               }}
             >
               {formatPercent(record?.loss ?? pingStats?.loss, 1)}
@@ -365,7 +385,9 @@ function PingBar({ data, loss = [] }: { data: number[]; loss?: number[] }) {
     )
   }
   const lossColor = (l: number): string =>
-    l > 10 ? 'var(--signal-bad)' : l > 2 ? '#d68a3c' : l > 0 ? 'var(--signal-warn)' : 'var(--signal-good)'
+    // MMWX loss_pct is a percent value (0.18 = 0.18%). Low sub-1% jitter is
+    // normal — only flag ≥1% (amber) and ≥5% (red).
+    l >= 5 ? 'var(--signal-bad)' : l >= 1 ? '#d68a3c' : 'var(--signal-good)'
   return (
     <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: 14 }}>
       {data.map((v, i) => {

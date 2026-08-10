@@ -43,7 +43,6 @@ import { filterWindowsByRetention, getRecordRetentionHours } from '@/utils/reten
 import { useNodeHistory } from '@/hooks/useNodeHistory'
 import { useNodeTelemetry } from '@/hooks/useNodeTelemetry'
 import { NetworkQualityPanel } from '@/components/v2/NetworkQualityPanel'
-import { ConnectionsPanel } from '@/components/v2/ConnectionsPanel'
 import { useElementWidth } from '@/hooks/useElementWidth'
 import { hashFor } from '@/router/route'
 import { useMobileDrawer } from '@/hooks/useMediaQuery'
@@ -78,6 +77,10 @@ interface Props {
   /** Site-wide ping history (used for ping-to-targets summary). */
   ping?: PingHistory
   hubTargetUuid?: string
+  /** Local avg-latency history (derived from probe snapshots). */
+  pingByNode?: Record<string, number[]>
+  /** Local avg packet-loss history. */
+  pingLossByNode?: Record<string, number[]>
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -842,6 +845,8 @@ export function HubPage({
   lastUpdate,
   config,
   hubTargetUuid,
+  pingByNode,
+  pingLossByNode,
 }: Props) {
   const drawer = useMobileDrawer()
   // Live UTC clock for the command bar.
@@ -1482,24 +1487,46 @@ export function HubPage({
                   }
                 >
                   <div style={{ padding: '8px 12px 12px' }}>
-                    {pingSeries.length > 0 ? (
-                      <PingChart series={pingSeries} height={120} times={bucketTimes} />
-                    ) : (
-                      <div
-                        style={{
-                          height: 120,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--fg-3)',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: contentFs(10),
-                          letterSpacing: '0.16em',
-                        }}
-                      >
-                        NO PING DATA
-                      </div>
-                    )}
+                    {(() => {
+                      // Prefer real locally-accumulated avg latency — MMWX series
+                      // buckets are all current-value (flat pseudo-line).
+                      // Slice to the selected window (1H/6H/1D) so window switching works.
+                      const local = pingByNode?.[uuid]
+                      if (local && local.length >= 2) {
+                        const want = Math.min(local.length, HOURS * 60 * 12) // 5s poll
+                        const slice = local.slice(local.length - want)
+                        let data = slice
+                        if (slice.length > BUCKETS) {
+                          const step = slice.length / BUCKETS
+                          data = Array.from({ length: BUCKETS }, (_, b) => slice[Math.min(slice.length - 1, Math.floor(b * step))])
+                        }
+                        return (
+                          <PingChart
+                            series={[{ data, label: 'AVG' }]}
+                            height={120}
+                            times={undefined}
+                          />
+                        )
+                      }
+                      return pingSeries.length > 0 ? (
+                        <PingChart series={pingSeries} height={120} times={bucketTimes} />
+                      ) : (
+                        <div
+                          style={{
+                            height: 120,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--fg-3)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: contentFs(10),
+                            letterSpacing: '0.16em',
+                          }}
+                        >
+                          NO PING DATA
+                        </div>
+                      )
+                    })()}
                   </div>
                 </CardFrame>
               </div>
@@ -1651,20 +1678,6 @@ export function HubPage({
                 <NetworkQualityPanel
                   stats={telemetry.quality}
                   code="NET · 12"
-                  windowLabel={windowSpec.label}
-                />
-              )}
-
-              {telemetry.supported && telemetry.tcp.length > 0 && (
-                <ConnectionsPanel
-                  tcp={telemetry.tcp}
-                  udp={telemetry.udp}
-                  proc={telemetry.proc}
-                  tcpNow={telemetry.tcpNow}
-                  udpNow={telemetry.udpNow}
-                  procNow={telemetry.procNow}
-                  tcpMean={telemetry.tcpMean}
-                  code="CON · 13"
                   windowLabel={windowSpec.label}
                 />
               )}

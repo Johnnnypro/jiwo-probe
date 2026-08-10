@@ -55,18 +55,18 @@ interface Bubble {
 
 function colorForLoss(loss: number, online: boolean): string {
   if (!online) return 'var(--signal-bad)'
-  if (loss > 2) return 'var(--signal-bad)'
-  if (loss > 1) return '#d97a3a'
-  if (loss > 0.5) return 'var(--signal-warn)'
-  if (loss > 0.1) return '#a0b03a'
+  // MMWX loss is a percent value (0.18 = 0.18%). Sub-1% jitter is normal.
+  if (loss >= 5) return 'var(--signal-bad)'
+  if (loss >= 2) return '#d97a3a'
+  if (loss >= 1) return 'var(--signal-warn)'
   return 'var(--signal-good)'
 }
 
 function sizeForLoss(loss: number, online: boolean): number {
   if (!online) return 7
-  if (loss > 2) return 9
-  if (loss > 1) return 7.5
-  if (loss > 0.5) return 6.5
+  if (loss >= 5) return 9
+  if (loss >= 2) return 7.5
+  if (loss >= 1) return 6.5
   return 5.5
 }
 

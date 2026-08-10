@@ -91,6 +91,10 @@ interface Props {
   siteName?: string
   config?: KomariPublicConfig
   hubTargetUuid?: string
+  /** Local avg-latency history (derived from probe snapshots). */
+  pingByNode?: Record<string, number[]>
+  /** Local avg packet-loss history. */
+  pingLossByNode?: Record<string, number[]>
 }
 
 export function NodeDetailPage({
@@ -104,6 +108,8 @@ export function NodeDetailPage({
   siteName = '岚 · Komari',
   config,
   hubTargetUuid,
+  pingByNode,
+  pingLossByNode,
 }: Props) {
   const drawer = useMobileDrawer()
   const isMobile = useIsMobile()
@@ -136,7 +142,6 @@ export function NodeDetailPage({
   // be padded with synthetic zeroes before collection actually started.
   const cpuHistory = useMemo(() => timedLoadMetric(history.load, 'cpu'), [history.load])
   const memoryHistory = useMemo(() => timedLoadMetric(history.load, 'ram'), [history.load])
-  const diskHistory = useMemo(() => timedLoadMetric(history.load, 'disk'), [history.load])
   const networkHistory = useMemo(() => timedNetwork(history.load), [history.load])
   const historyDomain = useMemo<readonly [number, number]>(() => {
     const end = Date.now()
@@ -276,9 +281,7 @@ export function NodeDetailPage({
 
   const haveCpuHistory = cpuHistory.data.length > 0
   const haveMemoryHistory = memoryHistory.data.length > 0
-  const haveDiskHistory = diskHistory.data.length > 0
   const haveNetworkHistory = networkHistory.hasIn || networkHistory.hasOut
-  const hasConnectionData = record?.tcp != null || record?.udp != null || record?.process != null
 
   // Specs strip
   // Try to extract kernel from os string (e.g. "Debian GNU/Linux 13 · 6.1.0-26 · amd64").
@@ -727,27 +730,6 @@ export function NodeDetailPage({
                   </ChartOrEmpty>
                 </CardFrame>
                 <CardFrame
-                  title={`Disk · ${windowSpec.titleSuffix}`}
-                  code="C · 03"
-                  action={<Etch>{haveDiskHistory ? `${diskHistory.data.length} SAMPLES` : 'CURRENT ONLY'}</Etch>}
-                >
-                  <ChartOrEmpty empty={!haveDiskHistory} label="CURRENT VALUE ONLY · NO HISTORY API">
-                    <AreaChart
-                      data={diskHistory.data}
-                      times={diskHistory.times}
-                      xDomain={historyDomain}
-                      formatValue={(v) => `${v.toFixed(1)}%`}
-                      width={400}
-                      height={150}
-                      color="var(--signal-good)"
-                      yMin={0}
-                      yMax={100}
-                      threshold={85}
-                      gradientId="ndt-disk"
-                    />
-                  </ChartOrEmpty>
-                </CardFrame>
-                <CardFrame
                   title={`Network · ${windowSpec.titleSuffix}`}
                   code="C · 04"
                   action={<Etch>{haveNetworkHistory ? `${networkHistory.times.length} SAMPLES` : 'NO DATA'}</Etch>}
@@ -773,69 +755,6 @@ export function NodeDetailPage({
                   gap: 16,
                 }}
               >
-                <CardFrame
-                  title="Connections"
-                  code="P · 11"
-                  action={<Etch>{hasConnectionData ? 'BY KIND' : 'NOT EXPOSED'}</Etch>}
-                >
-                  {hasConnectionData ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[
-                      {
-                        l: 'TCP',
-                        v: record?.tcp != null ? record.tcp.toLocaleString() : '—',
-                        s: 'good',
-                      },
-                      {
-                        l: 'UDP',
-                        v: record?.udp != null ? record.udp.toLocaleString() : '—',
-                        s: 'info',
-                      },
-                      {
-                        l: 'PROCESSES',
-                        v: record?.process != null ? record.process.toLocaleString() : '—',
-                        s: (record?.process ?? 0) > 500 ? 'warn' : 'good',
-                      },
-                    ].map((x, i) => (
-                      <div
-                        key={x.l}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '6px 0',
-                          borderBottom: i < 2 ? '1px solid var(--edge-engrave)' : 'none',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <StatusDot status={x.s as 'good' | 'warn' | 'info'} size={5} />
-                          <span style={{ fontSize: contentFs(11), color: 'var(--fg-1)' }}>{x.l}</span>
-                        </div>
-                        <Numeric value={x.v} size={14} />
-                      </div>
-                    ))}
-                    <div className="seam" style={{ margin: '6px 0' }} />
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'baseline',
-                      }}
-                    >
-                      <Etch>TOTAL</Etch>
-                      <Numeric
-                        value={record?.tcp == null && record?.udp == null
-                          ? '—'
-                          : ((record?.tcp ?? 0) + (record?.udp ?? 0)).toLocaleString()}
-                        size={20}
-                      />
-                    </div>
-                  </div>
-                  ) : (
-                    <FeatureUnavailable text="CURRENT PROBE API DOES NOT EXPOSE CONNECTION OR PROCESS COUNTS" />
-                  )}
-                </CardFrame>
-
                 <CardFrame title="Traffic" code="T · 11" action={<Etch>REPORTED PERIOD</Etch>}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <ConnRow
@@ -1040,6 +959,10 @@ export function NodeDetailPage({
                       target={t}
                       index={i}
                       times={bucketTimes}
+                      localHistory={pingByNode?.[uuid]}
+                      localLoss={pingLossByNode?.[uuid]}
+                      windowBuckets={windowSpec.buckets}
+                      windowHours={windowSpec.hours}
                     />
                   ))}
                 </div>
@@ -1176,22 +1099,51 @@ function PingTargetCard({
   target,
   index,
   times,
+  localHistory,
+  localLoss,
+  windowBuckets,
+  windowHours,
 }: {
   target: { task: { id: number; name: string; loss: number; interval: number }; data: number[]; latest?: number }
   index: number
   times?: number[]
+  /** Local avg-latency history — replaces the flat pseudo-series from MMWX series API. */
+  localHistory?: number[]
+  localLoss?: number[]
+  /** Window shape: slice local history to this window, downsampled to these buckets. */
+  windowBuckets?: number
+  windowHours?: number
 }) {
   const colors = ['var(--accent)', 'var(--signal-info)', 'var(--signal-good)', 'var(--accent-bright)']
   const color = colors[index % colors.length]
   const latest = target.latest
   const loss = target.task.loss ?? 0
 
+  // Prefer real locally-accumulated history over the flat pseudo-buckets the
+  // MMWX series API returns (all buckets = current value → a flat line).
+  // Slice the local buffer to the selected window (1H/6H/1D) and downsample
+  // to the window's bucket count so switching windows actually changes the span.
+  let seriesData = target.data
+  if (localHistory && localHistory.length >= 2) {
+    const hours = windowHours ?? 1
+    const want = Math.min(localHistory.length, hours * 60 * 12) // 5s poll
+    const slice = localHistory.slice(localHistory.length - want)
+    const buckets = windowBuckets ?? 60
+    if (slice.length > buckets) {
+      const step = slice.length / buckets
+      seriesData = Array.from({ length: buckets }, (_, b) => slice[Math.min(slice.length - 1, Math.floor(b * step))])
+    } else {
+      seriesData = slice
+    }
+  }
+  const seriesLoss = localLoss && localLoss.length >= 2 ? localLoss : undefined
+
   // Auto y-scale based on this target's actual values
-  const peak = Math.max(...target.data, 1)
+  const peak = Math.max(...seriesData, 1)
   const yMax = Math.ceil((peak * 1.3) / 10) * 10 || 50
 
   // Status from loss + latency
-  const lossStatus: 'good' | 'warn' | 'bad' = loss > 10 ? 'bad' : loss > 2 ? 'warn' : 'good'
+  const lossStatus: 'good' | 'warn' | 'bad' = loss >= 5 ? 'bad' : loss >= 1 ? 'warn' : 'good'
 
   return (
     <div
@@ -1277,7 +1229,7 @@ function PingTargetCard({
         </div>
 
         <AreaChart
-          data={target.data}
+          data={seriesData}
           times={times}
           formatValue={(v) => `${Math.round(v)} ms`}
           width={260}
@@ -1289,33 +1241,9 @@ function PingTargetCard({
           gridX={3}
           gradientId={`pt-${target.task.id}`}
           formatY={(v) => `${Math.round(v)}`}
+          smooth
         />
       </div>
-    </div>
-  )
-}
-
-function FeatureUnavailable({ text }: { text: string }) {
-  return (
-    <div
-      style={{
-        minHeight: 118,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '14px 18px',
-        textAlign: 'center',
-        color: 'var(--fg-3)',
-        background: 'var(--bg-inset)',
-        border: '1px solid var(--edge-engrave)',
-        borderRadius: 2,
-        fontFamily: 'var(--font-mono)',
-        fontSize: contentFs(9),
-        letterSpacing: '0.12em',
-        lineHeight: 1.7,
-      }}
-    >
-      {text}
     </div>
   )
 }

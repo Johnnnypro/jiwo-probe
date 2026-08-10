@@ -77,7 +77,7 @@ export default function App({ initialTheme }: { initialTheme?: string }) {
     setTheme(t)
   }
   const route = useRoute()
-  const { nodes, records, config, conn, ping, lastUpdate } = useKomari()
+  const { nodes, records, config, conn, ping, lastUpdate, pingByNode, pingLossByNode } = useKomari()
 
   // View version (v1 classic vs v2 modern). Reads:
   //   1. user's localStorage preference (highest)
@@ -204,6 +204,8 @@ export default function App({ initialTheme }: { initialTheme?: string }) {
             config={config}
             ping={ping}
             hubTargetUuid={hubTargetUuid}
+            pingByNode={pingByNode}
+            pingLossByNode={pingLossByNode}
           />
         </ErrorBoundary>
       )
@@ -223,6 +225,8 @@ export default function App({ initialTheme }: { initialTheme?: string }) {
             conn={conn}
             config={config}
             hubTargetUuid={hubTargetUuid}
+            pingByNode={pingByNode}
+            pingLossByNode={pingLossByNode}
           />
         )
       }
@@ -243,6 +247,8 @@ export default function App({ initialTheme }: { initialTheme?: string }) {
               hubTargetUuid={hubTargetUuid}
               viewVersion={viewVersion}
               onViewVersionChange={setViewVersion}
+              pingByNode={pingByNode}
+              pingLossByNode={pingLossByNode}
             />
           </ErrorBoundary>
         )
