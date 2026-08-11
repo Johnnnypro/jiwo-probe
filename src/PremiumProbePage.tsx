@@ -1458,8 +1458,8 @@ function MultiTargetLatencyChart({
 
 function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
   const [serverIndex, setServerIndex] = useState(0)
-  const [target, setTarget] = useState('__avg__')
-  const [visibleTargets, setVisibleTargets] = useState<string[]>(['__avg__'])
+  const [target, setTarget] = useState('__all__')
+  const [visibleTargets, setVisibleTargets] = useState<string[]>([])
   const [range, setRange] = useState<'1h' | '6h' | '24h'>('1h')
   const selectedServerIndex = Math.min(
     serverIndex,
@@ -1488,7 +1488,7 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
     target === '__custom__' ||
     targets.some((item) => item.id === target)
       ? target
-      : '__avg__'
+      : '__all__'
   const [detail, setDetail] = useState<{
     success: boolean
     series: ProbePingSeries
@@ -1565,8 +1565,13 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
         ...(detail.all_series || []),
       ]
     : []
+  const allChartTargetKeys = chartSeries.map(
+    (item) => item.key || pingTargetID(item)
+  )
+  const effectiveVisibleTargets =
+    selectedTarget === '__all__' ? allChartTargetKeys : visibleTargets
   const visibleChartSeries = chartSeries.filter((item) =>
-    visibleTargets.includes(item.key || pingTargetID(item))
+    effectiveVisibleTargets.includes(item.key || pingTargetID(item))
   )
   const measuredRows = rows.filter((row) => row.series.length > 0)
   const reachableRows = measuredRows.filter(
@@ -1608,8 +1613,8 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
               value={selectedServerIndex}
               onChange={(event) => {
                 setServerIndex(Number(event.target.value))
-                setTarget('__avg__')
-                setVisibleTargets(['__avg__'])
+                setTarget('__all__')
+                setVisibleTargets([])
               }}
             >
               {servers.map((server, index) => (
@@ -1629,7 +1634,7 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
                 setTarget(value)
                 setVisibleTargets(
                   value === '__all__'
-                    ? ['__avg__', ...targets.map((item) => item.id)]
+                    ? []
                     : [value]
                 )
               }}
@@ -1712,7 +1717,7 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
           <div>
             {chartSeries.map((item, index) => {
               const key = item.key || pingTargetID(item)
-              const active = visibleTargets.includes(key)
+              const active = effectiveVisibleTargets.includes(key)
               return (
                 <button
                   type='button'
@@ -1720,11 +1725,15 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
                   className={active ? 'is-active' : undefined}
                   onClick={() => {
                     setTarget('__custom__')
-                    setVisibleTargets((current) =>
-                      current.includes(key)
-                        ? current.filter((item) => item !== key)
-                        : [...current, key]
-                    )
+                    setVisibleTargets((current) => {
+                      const base =
+                        selectedTarget === '__all__'
+                          ? allChartTargetKeys
+                          : current
+                      return base.includes(key)
+                        ? base.filter((item) => item !== key)
+                        : [...base, key]
+                    })
                   }}
                   title={active ? '点击隐藏该目标' : '点击显示该目标'}
                 >
