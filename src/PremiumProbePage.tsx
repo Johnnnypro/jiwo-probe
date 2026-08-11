@@ -1326,6 +1326,8 @@ function MultiTargetLatencyChart({
   generatedAt: number
 }) {
   const [activeIndex, setActiveIndex] = useState<number>()
+  const [activeY, setActiveY] = useState<number>()
+  const chartTopRef = useRef(0)
   const width = 420
   const height = 84
   const baseline = height - 8
@@ -1377,6 +1379,11 @@ function MultiTargetLatencyChart({
               ]
             : []
         })
+  // tooltip 跟随鼠标: 默认在鼠标下方, 下方视口空间不足(按行数估算高度)时翻转到上方
+  const tooltipTop = activeY === undefined ? undefined : activeY + 14
+  const estTooltipHeight = activeValues.length * 18 + 34
+  const tooltipFlip =
+    activeY !== undefined && window.innerHeight - (chartTopRef.current + activeY) < estTooltipHeight + 16
 
   return (
     <div
@@ -1389,8 +1396,13 @@ function MultiTargetLatencyChart({
           Math.min(1, (event.clientX - bounds.left) / bounds.width)
         )
         setActiveIndex(Math.round(ratio * (count - 1)))
+        setActiveY(event.clientY - bounds.top)
+        chartTopRef.current = bounds.top
       }}
-      onPointerLeave={() => setActiveIndex(undefined)}
+      onPointerLeave={() => {
+        setActiveIndex(undefined)
+        setActiveY(undefined)
+      }}
     >
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio='none'>
         <line
@@ -1419,9 +1431,10 @@ function MultiTargetLatencyChart({
       </svg>
       {activeTimestamp !== undefined && (
         <div
-          className='premium-probe-multi-tooltip'
+          className={`premium-probe-multi-tooltip${tooltipFlip ? ' is-flip' : ''}`}
           style={{
             left: `${Math.max(12, Math.min(88, ((cursorX || 0) / width) * 100))}%`,
+            ...(tooltipTop === undefined || tooltipFlip ? {} : { top: `${tooltipTop}px` }),
           }}
         >
           <time>{formatAxisDateTime(activeTimestamp)}</time>

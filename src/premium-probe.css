@@ -1597,7 +1597,7 @@
 }
 
 .premium-probe-network-row {
-  min-height: 132px;
+  min-height: 280px;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(216, 180, 106, 0.12);
 }
@@ -1686,14 +1686,14 @@
   position: relative;
   display: grid;
   min-width: 0;
-  height: 104px;
+  height: 244px;
   align-items: center;
 }
 
 .premium-probe-multi-target-chart {
   position: relative;
   width: 100%;
-  height: 96px;
+  height: 230px;
   min-width: 0;
   cursor: crosshair;
 }
@@ -1732,16 +1732,22 @@
   width: max-content;
   min-width: 9rem;
   max-width: min(24rem, 75%);
-  max-height: 8.5rem;
+  max-height: min(32rem, calc(100vh - 2rem));
   gap: 0.2rem;
   padding: 0.42rem 0.5rem;
   overflow: hidden auto;
-  pointer-events: none;
+  pointer-events: auto;
   border: 1px solid rgba(242, 210, 139, 0.48);
   border-radius: 0.3rem;
   background: rgba(6, 7, 6, 0.96);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
   transform: translateX(-50%);
+}
+
+/* 鼠标靠近图表底部时: tooltip 翻转到鼠标上方 */
+.premium-probe-multi-tooltip.is-flip {
+  top: auto;
+  bottom: 0.2rem;
 }
 
 .premium-probe-multi-tooltip time {
