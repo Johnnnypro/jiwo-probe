@@ -2555,7 +2555,10 @@ function ProbeLicenseNameplate({ name, displayName }: { name?: string; displayNa
   )
 }
 
-// 许可证铭牌：仅展示主控 API 返回的 license_badge。
+// 主控端仅支持单个许可证，这里补充展示其它已获得的许可证铭牌（按 name 去重合并）。
+// 数组顺序即页面展示顺序。
+// 注意：此数组为本地部署专属（私有勋章），推送到 GitHub 时由 git clean filter 自动剥离。
+import { EXTRA_LICENSE_BADGES } from './license-badges'
 
 // daily_traffic 跨周期历史: Worker cron 按天合并缓存(KV, 90天), 前端页面加载拉一次(日期变化时刷新),
 // 与 payload 的 daily_traffic(当前周期)合并 → 周期重置后脉冲图/日流量趋势仍有历史
