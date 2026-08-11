@@ -496,7 +496,7 @@ button {
   font-size: 12px;
 }
 .node-stats .online strong {
-  color: #10b981;
+  color: #57ab5a;
 }
 .node-stats .offline strong {
   color: #ef4444;
@@ -1269,6 +1269,18 @@ footer a:hover {
 .chart-fixed-y-axis .recharts-cartesian-grid,
 .chart-fixed-y-axis .recharts-line,
 .chart-fixed-y-axis .recharts-tooltip-wrapper { display: none; }
+/* 趋势图鼠标跟随 tooltip: 跟随主题表面色(黑金/暗色下为深色底) */
+.recharts-default-tooltip {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+}
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-item-name,
+.recharts-default-tooltip .recharts-tooltip-item-value {
+  color: var(--foreground) !important;
+}
 .chart-scroll { overflow-x: auto; overflow-y: hidden; width: 100%; min-width: 0; max-width: 100%; height: 100%; overscroll-behavior-x: contain; cursor: grab; user-select: none; scrollbar-width: thin; }
 .chart-scroll:active { cursor: grabbing; }
 .chart-scroll-inner { height: 100%; }
@@ -2786,9 +2798,9 @@ footer a:hover {
 }
 .assets-main {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 14px 16px;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--page-bg) 72%, var(--surface));
@@ -3173,6 +3185,53 @@ footer a:hover {
   --hover-bg: #2f3742;
   --lumina-top-glow: none;
 }
+/* Lumina 黑金配色（Premium 黑金风格移植, 第三配色） */
+:root.theme-lumina.gold {
+  color-scheme: dark;
+  color: #f3ecdc;
+  --primary: #d8b46a;
+  --page-bg: #0a0b0a;
+  --surface: #14160f;
+  --border: rgba(216, 180, 106, 0.34);
+  --muted: #8f8674;
+  --foreground: #f3ecdc;
+  --shadow: 0 0 0 rgba(0, 0, 0, 0);
+  --hover-bg: #1e2018;
+  --accent: #d8b46a;
+  --progress-cpu: #d8b46a;
+  --progress-memory: #d8b46a;
+  --progress-swap: #d8b46a;
+  --progress-disk: #d8b46a;
+  --progress-network: #d8b46a;
+  --progress-load: #d8b46a;
+  --progress-bg: rgba(243, 236, 220, 0.14);
+  --status-success: #57ab5a;
+  --status-warning: #daaa3f;
+  --status-error: #ef5b64;
+  --traffic-up: #f2d28b;
+  --traffic-down: #d8b46a;
+  /* 黑金: 剩余流量分段条金色渐变(替代绿→黄→红热力) */
+  --lumina-heat: linear-gradient(
+    to right,
+    #a8843f 0%,
+    #c9a255 30%,
+    #d8b46a 60%,
+    #f2d28b 100%
+  );
+  --lumina-top-glow: radial-gradient(
+    1100px 560px at 50% -8%,
+    rgba(216, 180, 106, 0.09) 0%,
+    transparent 60%
+  );
+}
+
+/* 黑金: 许可证徽章金色化(替代默认砖橙/棕) */
+:root.theme-lumina.gold .probe-license-nameplate {
+  border-color: rgba(216, 180, 106, 0.45);
+  background: linear-gradient(135deg, #1e2018 0%, #2a2a1e 48%, #14160f 100%);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #f2d28b;
+}
 :root.theme-lumina .app-shell {
   background: var(--page-bg);
   background-image: var(--lumina-top-glow);
@@ -3334,9 +3393,9 @@ footer a:hover {
 }
 .lumina-meter {
   position: relative;
-  height: 5px;
+  height: 6px;
   border-radius: 999px;
-  background: var(--progress-bg, #e4e4e7);
+  background: color-mix(in srgb, var(--border) 70%, transparent);
   overflow: hidden;
 }
 .lumina-meter i {
@@ -3468,7 +3527,7 @@ footer a:hover {
 .lumina-quota-track > span {
   flex: 1 1 0;
   border-radius: 2px;
-  background: var(--progress-bg, #e4e4e7);
+  background: color-mix(in srgb, var(--border) 70%, transparent);
 }
 .lumina-quota-track > span.lit {
   background: var(--lumina-heat);
@@ -3641,6 +3700,13 @@ footer a:hover {
 }
 .lumina-route-chip.gold strong {
   color: #b45309;
+}
+:root.theme-lumina.gold .lumina-route-chip.gold {
+  background: color-mix(in srgb, #f5c542 7%, transparent);
+  border-color: color-mix(in srgb, #f5c542 30%, var(--border));
+}
+:root.theme-lumina.gold .lumina-route-chip.gold strong {
+  color: #f5c542;
 }
 :root.theme-lumina.dark .lumina-route-chip.gold {
   background: color-mix(in srgb, #f5c542 7%, transparent);

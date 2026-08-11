@@ -9,11 +9,18 @@ function normalizeTheme(value?: string): ThemeName {
   return value === 'anime' || value === 'flat' || value === 'glass' || value === 'lumina' ? value : 'pixel'
 }
 
+// 主控下发组合名 "Lumina-Gold" / "Lumina Gold" / "LUMINAGOLD" → lumina 主题 + 黑金配色
+export function parseThemeName(raw: string): { theme: string; gold: boolean } {
+  const lower = raw.toLowerCase().replace(/[\s_-]/g, '')
+  if (lower === 'luminagold') return { theme: 'lumina', gold: true }
+  return { theme: isBuiltinTheme(raw.toLowerCase()) ? raw.toLowerCase() : raw, gold: false }
+}
+
 // 主控可能下发自定义主题名（theme-{name} 类）。内置 6 主题走主题系统（含 premium 整页主题）；
 // 未知主题名照常挂 theme-{name} 类——站长可在自己的 CSS 里写 .theme-{name} 覆盖，
 // 没写则回退到默认(pixel)样式。返回值 = 是否内置主题（供 UI 判断"跟随主控"时如何显示）。
 export function isBuiltinTheme(value?: string): boolean {
-  return value === 'pixel' || value === 'flat' || value === 'anime' || value === 'glass' || value === 'lumina' || value === 'premium'
+  return value === 'pixel' || value === 'flat' || value === 'anime' || value === 'glass' || value === 'lumina' || value === 'premium' || value === 'luminagold'
 }
 
 export function applyAppearance(input?: ProbeAppearance) {
@@ -30,18 +37,25 @@ export function applyAppearance(input?: ProbeAppearance) {
   // 内置主题名大小写不敏感归一化（主控可能下发 Lumina/LUMINA → lumina）；
   // 自定义主题名原样保留挂 theme-{name}（站长 CSS 怎么写就怎么匹配）。
   const raw = themeOverride || appearance.theme || 'pixel'
-  const lower = raw.toLowerCase()
-  const theme = isBuiltinTheme(lower) ? lower : raw
+  // 组合名解析: "lumina-gold" → lumina 主题 + gold 黑金配色（主控下发可直接指定黑金）
+  const parsed = parseThemeName(raw)
+  const theme = parsed.theme
   const root = document.documentElement
   // 清理所有 theme-* 类（含可能的自定义主题类），再挂当前主题
   for (const cls of [...root.classList]) {
     if (cls.startsWith('theme-')) root.classList.remove(cls)
   }
   root.classList.remove('dark')
+  root.classList.remove('gold')
   root.classList.add(`theme-${theme}`)
   const darkOverride = localStorage.getItem(DARK_OVERRIDE)
   let dark: boolean
-  if (darkOverride === 'dark') {
+  if (darkOverride === 'gold' || (parsed.gold && !themeOverride)) {
+    // 黑金配色（lumina 第三配色）: 不挂 dark, 挂 gold。
+    // 手动 override 为 gold 或主控下发组合名（用户未手动选主题时）都进入
+    root.classList.add('gold')
+    dark = false
+  } else if (darkOverride === 'dark') {
     dark = true
   } else if (darkOverride === 'light') {
     dark = false
@@ -58,7 +72,7 @@ export function getDarkOverride(): string | null {
   return localStorage.getItem(DARK_OVERRIDE)
 }
 
-export function setDarkOverride(mode: 'dark' | 'light' | null) {
+export function setDarkOverride(mode: 'dark' | 'light' | 'gold' | null) {
   if (mode) {
     localStorage.setItem(DARK_OVERRIDE, mode)
   } else {
@@ -80,9 +94,7 @@ export function getActiveTheme(): string {
   if (override) return override
   try {
     const cached = JSON.parse(localStorage.getItem(APPEARANCE_CACHE) || 'null') as ProbeAppearance | null
-    const raw = cached?.theme || 'pixel'
-    const lower = raw.toLowerCase()
-    return isBuiltinTheme(lower) ? lower : raw
+    return parseThemeName(cached?.theme || 'pixel').theme
   } catch {
     return 'pixel'
   }

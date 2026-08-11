@@ -28,6 +28,8 @@
   - **10 个主题变体**：墨石深（night）/ 雾色浅（mist）/ 烬枣红（ember）/ 樱粉（sakura）/ 薰衣草（lavender）等，右上角切换
   - 懒加载分包（首屏 index 196KB 不变），访客接口走 CF 请求头（零第三方依赖）
 - **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina → ran` 循环）——复刻 Komari Theme LuminaPlus 卡片：浅色阶分层 + 描边（无阴影），健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
+  - **三态配色循环**（Gem 图标切换：浅 → 暗 → 黑金）——黑金为 Lumina 专属配色：深墨绿黑底 + 金色描边/光晕 + 米白文字，顶部金色光晕；切换记忆在浏览器（localStorage），刷新保持
+  - **黑金金色体系**——非语义色全部收敛金色：进度条/脉冲条/剩余流量条/延迟与丢包率数值与柱条/资产总揽金额（`--accent`）/许可证徽章/spark 星光统一金色（暗金 `#a8843f` → 金 `#c9a255` → 亮金 `#d8b46a` → 最亮金 `#f2d28b` 亮度分档）；进度条轨道用详情页同款 `color-mix(border 70%)` 暗轨道（全主题自适应）；状态语义色保留（绿在线/红离线/黄到期），趋势图多线区分色保留
 - **液态玻璃主题**（第 4 主题）——渐变玻璃面 + 斜向镜面光泽 + 顶部镜面高光 + 4 层光斑背景，真液态玻璃而非毛玻璃
 - **主控自定义主题**——主控后台可下发任意主题名，探针原样挂 `theme-{name}` CSS 类（站长可在探针 CSS 里写 `:root.theme-{name}` 覆盖，无对应样式自动回退默认）；内置主题名大小写不敏感归一化（主控下发 `Lumina` 正确应用本地 lumina 主题）；用户手动切换主题优先于主控下发
 
@@ -39,6 +41,7 @@
 |---|---|
 | `Ran` / `RAN` / `ran` | Ran 金工界面 + 默认主题（ran-mist 雾色浅） |
 | `Ran-Night` / `Ran-Mist` / `Ran-Ember` 等 | Ran 界面 + 对应变体（墨石深 / 雾色浅 / 烬枣红 …） |
+| `Lumina-Gold` / `Lumina Gold` / `LUMINAGOLD` | Lumina 黑金配色（默认黑金，访客手动切换仍优先） |
 | `Lumina` / `Pixel` / `Flat` / `Anime` / `Glass` | 经典界面 + 对应主题 |
 | `Premium` | Premium 黑金 PRO 界面（整页独立界面，右上角主题下拉可双向切换） |
 | 其他自定义名 | 经典界面 + `theme-{name}` 类（站长自写 CSS 接管） |
@@ -53,8 +56,8 @@
 - **搜索框**——按名称 / 地区 / 服务商即时过滤节点
 - **地区筛选下拉**——自定义组件，Twemoji 旗帜图片渲染（原生 `<select>` 在 Windows 下旗帜会显示成字母）
 - **地区分布折叠卡**——按地区聚合，全球 SVG 分布图
-- **资产总揽**——总剩余价值 / 月均成本 / 覆盖台数（按剩余天数折算，共享同一套算法）
-- **服务器详情页**（hash 路由）——剩余价值、负载三值、上行/下行速度对称布局、到期与续费信息、回程线路、延迟/丢包率/日流量/负载趋势图、省市区展示
+- **资产总揽**——总剩余价值 / 月均成本 / 覆盖台数（按剩余天数折算，共享同一套算法），大数字垂直居中 + 左右分布
+- **服务器详情页**（hash 路由）——剩余价值、负载三值、上行/下行速度对称布局、到期与续费信息、回程线路、延迟/丢包率/日流量/负载趋势图、省市区展示；**趋势图鼠标跟随 tooltip 深色化**（跟随主题表面色 `--surface`，黑金/暗色下深底金字，浅色主题保持白底）
 - **负载历史曲线**——详情页"负载"tab：1/5/15 分钟负载三线趋势（1h/6h/24h 档位 + 缩放适应）；Lumina 主题卡片点击"负载"指标格直接弹出趋势图（与延迟/丢包率弹窗一致）。数据由 Worker 定时任务每 5 分钟采集主控探针数据写入 KV，自建历史，无需依赖上游
 - **CPU / 内存历史曲线**——详情页新增"CPU""内存"tab：CPU 使用率 / 内存占用百分比历史（1h/6h/24h 档位 + 缩放适应），数据来自上游 series `metric=system`（主控 beta3 原生支持）
 - **剩余价值计算**——日成本 × 剩余天数（含当天口径），支持月/季/半年/年周期多币种
@@ -202,7 +205,7 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 
 ## 上游同步
 
-本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）；`be3d03c`（表格网速列改纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，已跳过；2026-08-11 吸收 `3ed41ca`（**Premium 黑金 PRO 主题**：PremiumProbePage / premium-probe.css / BlackGoldGlobe 球体 / country-flag + server-name 工具 + OPlusSans3 字体 + `/login` 重定向），并接入主题下拉体系（右上角主题下拉 + 经典界面下拉均可双向切换）、右上角登录按钮改为主题/水印切换、底部本地勋章（git filter 剥离，公开版零私人数据）；上游同 commit 的表格"上传/下载"文字标签与 metric-hover-detail 与本地定制冲突，跳过。2026-08-10 完整移植 Komari-Ran-Theme（`src/ran/` 原版 125 文件 + mmwx-adapter 数据适配层，参考 [eutopiazen/mmwx-probe](https://github.com/eutopiazen/mmwx-probe) 的集成方式）。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
+本 fork 基于上游 `2dc05b3`，已吸收 `5ce90c0`（探针表格优化：表格流量列增强）；`be3d03c`（表格网速列改纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，已跳过；2026-08-11 吸收 `3ed41ca`（**Premium 黑金 PRO 主题**：PremiumProbePage / premium-probe.css / BlackGoldGlobe 球体 / country-flag + server-name 工具 + OPlusSans3 字体 + `/login` 重定向），并接入主题下拉体系（右上角主题下拉 + 经典界面下拉均可双向切换）、右上角登录按钮改为主题/水印切换、底部本地勋章（git filter 剥离，公开版零私人数据）；上游同 commit 的表格"上传/下载"文字标签与 metric-hover-detail 与本地定制冲突，跳过。后续迭代：网络状况页行高 280px/曲线加高、多目标 tooltip 上限 32rem（27 行全显 + 矮视口滚动）、内网/海外目标划分；Lumina 三态配色（黑金）+ 黑金金色体系（进度/脉冲/剩余流量/延迟/丢包/资产金额/许可证徽章全金色，语义状态色保留）；趋势图 tooltip 主题化深色。2026-08-10 完整移植 Komari-Ran-Theme（`src/ran/` 原版 125 文件 + mmwx-adapter 数据适配层，参考 [eutopiazen/mmwx-probe](https://github.com/eutopiazen/mmwx-probe) 的集成方式）。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
 git fetch origin
