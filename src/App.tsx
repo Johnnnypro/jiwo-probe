@@ -1587,7 +1587,7 @@ function LuminaMetricBar({
     <div className="lumina-metric" title={detail ? `${label} ${value} · ${detail}` : `${label} ${value}`}>
       <div className="lumina-metric-head">
         <span className="lumina-metric-label">
-          {icon}
+          <span className="lumina-metric-icon">{icon}</span>
           <span>{label}</span>
         </span>
         <strong className="tabular">{value}</strong>
