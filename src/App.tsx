@@ -835,7 +835,7 @@ export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily
 function TrafficDialog({ server, close }: { server: ProbeServer; close: () => void }) {
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
-      <section className="modal" onMouseDown={(e) => e.stopPropagation()}>
+      <section className="modal" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
         <header>
           <h2>{server.name} · 日流量趋势</h2>
           <button aria-label="关闭" onClick={close}>
@@ -999,7 +999,7 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
 
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
-      <section className="modal" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="modal" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
         <header>
           <h2>
             {title} · {mode === 'loss' ? '丢包率趋势' : '延迟趋势'}
@@ -1422,7 +1422,7 @@ export function SystemTrendChart({ serverIndex, metric, containerClass = 'detail
 function LoadTrendDialog({ serverName, title, close }: { serverName: string; title: string; close: () => void }) {
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
-      <section className="modal" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="modal" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
         <header>
           <h2>{title} · 负载趋势</h2>
           <button aria-label="关闭" onClick={close}>
@@ -1439,7 +1439,7 @@ function LoadTrendDialog({ serverName, title, close }: { serverName: string; tit
 function SystemTrendDialog({ serverIndex, title, metric, close }: { serverIndex: number; title: string; metric: 'cpu' | 'mem'; close: () => void }) {
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
-      <section className="modal" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="modal" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
         <header>
           <h2>{title} · {metric === 'cpu' ? 'CPU' : '内存'}趋势</h2>
           <button aria-label="关闭" onClick={close}>
@@ -2269,7 +2269,7 @@ function TrafficCell({ server }: { server: ProbeServer }) {
       <button
         type="button"
         className={`table-traffic${server.daily_traffic?.length ? ' table-traffic-button' : ''}`}
-        onClick={() => server.daily_traffic?.length && setOpen(true)}
+        onClick={(event) => { event.stopPropagation(); server.daily_traffic?.length && setOpen(true) }}
         title={server.daily_traffic?.length ? '查看日流量趋势' : undefined}
       >
         <span className="table-traffic-main">
