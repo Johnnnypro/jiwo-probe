@@ -14,6 +14,7 @@ import premiumRouteAnimation from './assets/return-route/premium.json'
 
 const colors = ['#8b5cf6', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
 const RegionGlobe = lazy(() => import('./RegionGlobe').then((module) => ({ default: module.RegionGlobe })))
+const PremiumProbePage = lazy(() => import('./PremiumProbePage').then((module) => ({ default: module.PremiumProbePage })))
 const ranges = [
   {
     key: '1h',
@@ -244,6 +245,7 @@ const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
   { value: 'anime', label: '动漫' },
   { value: 'glass', label: '玻璃' },
   { value: 'lumina', label: 'Lumina' },
+  { value: 'premium', label: 'Premium' },
 ]
 
 function ThemeSelect({ value, onChange }: { value: ThemeName | null; onChange: (name: ThemeName | null) => void }) {
@@ -2716,6 +2718,14 @@ export function App() {
       </main>
     )
   if (!data?.enabled) return <main className="center">探针尚未启用</main>
+  // premium 主题: 用户下拉 override 优先，否则主控下发 → 渲染整页 Premium 界面
+  if (activeTheme === 'premium') {
+    return (
+      <Suspense fallback={<main className="center">正在加载 Premium 主题…</main>}>
+        <PremiumProbePage data={data} isLoading={false} isError={false} onThemeChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
+      </Suspense>
+    )
+  }
   const title = data.title?.trim() || '服务器状态'
   const onlineCount = servers.filter((server) => server.online).length
   const expiringCount = servers.filter(expiring).length

@@ -148,6 +148,9 @@ async function collectLoad(env: Env): Promise<void> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const incoming = new URL(request.url)
+    if (incoming.pathname === '/login') {
+      return Response.redirect(new URL('/login', env.MMWX_ORIGIN).toString(), 302)
+    }
     if (incoming.pathname === '/api/load') {
       if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 })
       const serverName = incoming.searchParams.get('server') ?? ''

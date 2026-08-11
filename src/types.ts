@@ -1,4 +1,4 @@
-export type ThemeName = 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina'
+export type ThemeName = 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium'
 
 export interface ProbeAppearance {
   // theme 是主控下发名，可为任意自定义主题名（探针挂 theme-{name} 类，无对应 CSS 时回退默认）
@@ -80,6 +80,12 @@ export interface ProbeReturnRoute {
 export interface ProbePayload {
   enabled: boolean
   show_globe?: boolean
+  show_daily_trend?: boolean
+  show_traffic_hotspots?: boolean
+  show_traffic_7d?: boolean
+  show_resource_heatmap?: boolean
+  show_traffic_quota?: boolean
+  show_renewal_timeline?: boolean
   title?: string
   logo?: string
   appearance?: ProbeAppearance
