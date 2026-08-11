@@ -415,14 +415,14 @@ function buildRegions(servers: ProbeServer[]): PremiumProbeRegion[] {
   })
 }
 
-type HealthResult = {
+export type HealthResult = {
   score: number
   label: '卓越' | '良好' | '注意' | '异常'
   tone: 'excellent' | 'good' | 'warning' | 'critical'
   issues: string[]
 }
 
-function serverHealth(server: ProbeServer): HealthResult {
+export function serverHealth(server: ProbeServer): HealthResult {
   if (!server.online) {
     return { score: 0, label: '异常', tone: 'critical', issues: ['服务器离线'] }
   }

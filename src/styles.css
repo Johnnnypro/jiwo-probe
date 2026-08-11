@@ -2465,6 +2465,21 @@ footer a:hover {
   color: #dc2626;
   background: rgba(220, 38, 38, 0.12);
 }
+.detail-health-score {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+.detail-health-score[data-tone='warning'],
+.detail-health-score[data-tone='critical'] {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.22);
+}
 .detail-region {
   flex-shrink: 0;
   max-width: 40%;

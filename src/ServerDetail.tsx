@@ -5,6 +5,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import type { ProbePingSeries, ProbeServer } from './types'
 import { Twemoji } from './Twemoji'
 import { Meter, ReturnRouteBadges, SystemIcon, TrafficChart, LoadTrendChart, SystemTrendChart, averagePing, bytes, expiring, expired, formatAxisDateTime, formatLossTick, hasLeadingFlag, HorizontalChart, lossScale, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
+import { serverHealth } from './PremiumProbePage'
 import { computeRemainingValue, formatMoney } from './value'
 
 const cycleLabel = {
@@ -302,6 +303,7 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
   const ping = server.ping || []
   const average = averagePing(ping)
   const lines = [{ ...average, key: '__avg__' }, ...ping]
+  const health = useMemo(() => serverHealth(server), [server])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -324,6 +326,13 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
               <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
             </h2>
             <span className={server.online ? 'detail-online' : 'detail-offline'}>{server.online ? '在线' : '离线'}</span>
+            <span
+              className="detail-health-score"
+              data-tone={health.tone}
+              title={health.issues.join('、') || '运行状态正常'}
+            >
+              {health.score} · {health.label}
+            </span>
           </div>
           {regionLabel(server) && <div className="detail-region">{regionLabel(server)}</div>}
           <button aria-label="关闭" onClick={onClose}>
