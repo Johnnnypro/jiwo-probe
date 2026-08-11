@@ -185,6 +185,24 @@
   will-change: transform, opacity;
 }
 
+/* 静态模式（footer 关闭动画）: 同尺寸铭牌, 透明底, 文字静止, 无星尘/扫光 */
+.license-nameplate.is-static {
+  opacity: 1;
+  background: transparent;
+  box-shadow: none;
+  border-color: rgba(216, 180, 106, 0.32);
+  transform: none;
+}
+.license-nameplate.is-static .np-text {
+  clip-path: none;
+  color: #cfc3a8;
+  text-shadow: none;
+}
+.license-nameplate.is-static .np-stars,
+.license-nameplate.is-static .np-shine-clip {
+  display: none;
+}
+
 .license-nameplate .np-text {
   position: relative;
   z-index: 2;
@@ -333,10 +351,20 @@
 .premium-probe-theme-check {
   flex-shrink: 0;
 }
-.premium-probe-watermark-toggle {
+.premium-probe-page .premium-probe-watermark-toggle {
   cursor: pointer;
+  color: #ffffff;
 }
-.premium-probe-watermark-toggle.is-on {
+.premium-probe-page .premium-probe-watermark-toggle.is-on {
+  color: var(--pp-gold-bright);
+  border-color: rgba(242, 210, 139, 0.62);
+}
+.premium-probe-page .premium-probe-license-anim-toggle {
+  align-self: center;
+  cursor: pointer;
+  color: #ffffff;
+}
+.premium-probe-page .premium-probe-license-anim-toggle.is-on {
   color: var(--pp-gold-bright);
   border-color: rgba(242, 210, 139, 0.62);
 }

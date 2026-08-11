@@ -13,6 +13,7 @@ import {
   Radio,
   Server,
   ShieldCheck,
+  Sparkles,
   Target,
   X,
   XCircle,
@@ -23,7 +24,7 @@ import type {
   ProbePayload,
 } from './types'
 import { Twemoji } from './Twemoji'
-import { EXTRA_LICENSE_BADGES } from './license-badges'
+import { EXTRA_LICENSE_BADGES, HEADER_LICENSE_BADGES } from './license-badges'
 import { FLAG_OPTIONS } from './country-flag'
 import { displayServerName } from './server-name'
 import { BlackGoldGlobe, type PremiumProbeRegion } from './BlackGoldGlobe'
@@ -54,13 +55,15 @@ const licenseEaseInBack = (value: number) => {
   return (strength + 1) * value * value * value - strength * value * value
 }
 
-function LicenseNameplate({ label }: { label: string }) {
+function LicenseNameplate({ label, isStatic = false }: { label: string; isStatic?: boolean }) {
   const plateRef = useRef<HTMLSpanElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
   const starsRef = useRef<HTMLSpanElement>(null)
   const shineRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
+    // 静态模式: 不启动动画, 铭牌保持完整尺寸, 由 CSS .is-static 控制透明底/静止
+    if (isStatic) return
     const plate = plateRef.current
     const text = textRef.current
     const stars = starsRef.current
@@ -149,7 +152,7 @@ function LicenseNameplate({ label }: { label: string }) {
   }, [])
 
   return (
-    <span ref={plateRef} className='license-nameplate'>
+    <span ref={plateRef} className={isStatic ? 'license-nameplate is-static' : 'license-nameplate'}>
       <span ref={textRef} className='np-text'>{label}</span>
       <span className='np-shine-clip' aria-hidden='true'>
         <span ref={shineRef} className='np-shine' />
@@ -255,10 +258,13 @@ function StandaloneLicenseBadge({
   badge,
   className,
   animated = false,
+  isStatic = false,
 }: {
   badge?: ProbePayload['license_badge']
   className?: string
   animated?: boolean
+  // 静态模式: 保持铭牌完整尺寸但透明底、无动画（footer 关闭动画时用）
+  isStatic?: boolean
 }) {
   // 本地支持多勋章: 数组取首个（与经典界面 Footer 合并展示不同, Premium 单铭牌位）
   const first = Array.isArray(badge) ? badge[0] : badge
@@ -270,6 +276,8 @@ function StandaloneLicenseBadge({
     <span className={cn('premium-probe-license-badge', className)}>
       {animated ? (
         <LicenseNameplate label={label} />
+      ) : isStatic ? (
+        <LicenseNameplate label={label} isStatic />
       ) : (
         <span className='premium-probe-license-name'>{label}</span>
       )}
@@ -1734,6 +1742,40 @@ function PremiumNetworkView({ servers }: { servers: ProbeServer[] }) {
             <button
               type='button'
               onClick={() => {
+                setTarget('__custom__')
+                setVisibleTargets(
+                  chartSeries
+                    .filter(
+                      (item) =>
+                        item.key !== '__avg__' &&
+                        /电信|联通|移动/.test(item.label)
+                    )
+                    .map((item) => item.key || pingTargetID(item))
+                )
+              }}
+            >
+              内地
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                setTarget('__custom__')
+                setVisibleTargets(
+                  chartSeries
+                    .filter(
+                      (item) =>
+                        item.key !== '__avg__' &&
+                        !/电信|联通|移动/.test(item.label)
+                    )
+                    .map((item) => item.key || pingTargetID(item))
+                )
+              }}
+            >
+              海外
+            </button>
+            <button
+              type='button'
+              onClick={() => {
                 setTarget('__avg__')
                 setVisibleTargets(['__avg__'])
               }}
@@ -2165,6 +2207,20 @@ export function PremiumProbePage({
     if (typeof window === 'undefined') return true
     return localStorage.getItem('premium-probe-watermark') !== '0'
   })
+  // 底部许可证动画开关（默认开，localStorage 记忆）
+  const [licenseAnim, setLicenseAnim] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return localStorage.getItem('premium-probe-license-anim') !== '0'
+  })
+  // 页首许可证循环播放索引（本地 11 枚轮播; GitHub 版空数组时回退主控 badge）
+  const [headerBadgeIdx, setHeaderBadgeIdx] = useState(0)
+  useEffect(() => {
+    if (HEADER_LICENSE_BADGES.length === 0) return
+    const timer = window.setInterval(() => {
+      setHeaderBadgeIdx((index) => (index + 1) % HEADER_LICENSE_BADGES.length)
+    }, LICENSE_CYCLE_MS)
+    return () => window.clearInterval(timer)
+  }, [])
   const sampledPayload = useRef<ProbeData | undefined>(undefined)
   const [liveSpeedHistory, setLiveSpeedHistory] = useState<{
     download: TrendSample[]
@@ -2251,6 +2307,13 @@ export function PremiumProbePage({
       return next
     })
   }
+  const toggleLicenseAnim = () => {
+    setLicenseAnim((prev) => {
+      const next = !prev
+      localStorage.setItem('premium-probe-license-anim', next ? '1' : '0')
+      return next
+    })
+  }
   const pageTitle = data?.title?.trim() || '服务器状态'
   const logo = data?.logo?.trim() || ''
 
@@ -2270,11 +2333,25 @@ export function PremiumProbePage({
           )}
           <h1>{pageTitle}</h1>
           <span className='premium-probe-pro'>PRO</span>
-          <StandaloneLicenseBadge
-            badge={data?.license_badge}
-            className='premium-probe-license'
-            animated
-          />
+          {HEADER_LICENSE_BADGES.length > 0 ? (
+            <span className='premium-probe-license'>
+              <LicenseNameplate
+                key={headerBadgeIdx}
+                label={[
+                  HEADER_LICENSE_BADGES[headerBadgeIdx].name?.trim(),
+                  HEADER_LICENSE_BADGES[headerBadgeIdx].display_name?.trim(),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              />
+            </span>
+          ) : (
+            <StandaloneLicenseBadge
+              badge={data?.license_badge}
+              className='premium-probe-license'
+              animated
+            />
+          )}
         </div>
         <nav>
           <span className='premium-probe-live'>实时更新</span>
@@ -2503,8 +2580,18 @@ export function PremiumProbePage({
           const merged = EXTRA_LICENSE_BADGES.map((badge) => live.find((item) => keyOf(item) === keyOf(badge)) || badge)
           const extras = live.filter((badge) => !EXTRA_LICENSE_BADGES.some((item) => keyOf(item) === keyOf(badge)))
           const list = [...merged, ...extras].filter((badge, index, all) => all.findIndex((item) => keyOf(item) === keyOf(badge)) === index)
-          return list.map((badge, index) => <StandaloneLicenseBadge key={index} badge={badge} />)
+          return list.map((badge, index) => <StandaloneLicenseBadge key={index} badge={badge} animated={licenseAnim} isStatic={!licenseAnim} />)
         })()}
+        <button
+          type='button'
+          className={`premium-probe-login premium-probe-license-anim-toggle${licenseAnim ? ' is-on' : ''}`}
+          aria-label={licenseAnim ? '关闭底部许可证动画' : '开启底部许可证动画'}
+          aria-pressed={licenseAnim}
+          title={licenseAnim ? '关闭底部许可证动画' : '开启底部许可证动画'}
+          onClick={toggleLicenseAnim}
+        >
+          <Sparkles />
+        </button>
       </footer>
     </div>
   )
