@@ -2714,7 +2714,8 @@ export function App() {
     window.scrollTo(0, detailScrollRef.current)
   }, [])
   const isDark = darkMode === 'dark' || (darkMode === null && document.documentElement.classList.contains('dark'))
-  const isGold = darkMode === 'gold'
+  // 主控下发 Lumina-Gold 时 darkMode state 为 null，但页面已挂 gold——用 classList 兜底识别，否则三态循环从错误位置起步
+  const isGold = darkMode === 'gold' || (darkMode === null && document.documentElement.classList.contains('gold'))
   const toggleDark = () => {
     // 三态循环: 浅色 → 暗色 → 黑金(lumina 专属) → 浅色
     const next = isGold ? 'light' : isDark ? 'gold' : 'dark'

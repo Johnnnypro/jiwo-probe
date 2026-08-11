@@ -50,9 +50,10 @@ export function applyAppearance(input?: ProbeAppearance) {
   root.classList.add(`theme-${theme}`)
   const darkOverride = localStorage.getItem(DARK_OVERRIDE)
   let dark: boolean
-  if (darkOverride === 'gold' || (parsed.gold && !themeOverride)) {
+  if (darkOverride === 'gold' || (parsed.gold && !themeOverride && !darkOverride)) {
     // 黑金配色（lumina 第三配色）: 不挂 dark, 挂 gold。
-    // 手动 override 为 gold 或主控下发组合名（用户未手动选主题时）都进入
+    // 手动 override 为 gold，或主控下发组合名且用户从未手动干预（主题/配色都没选过）才进入。
+    // 用户一旦手动切过配色（darkOverride 任意值），主控的 gold 不再强制，尊重用户选择。
     root.classList.add('gold')
     dark = false
   } else if (darkOverride === 'dark') {
