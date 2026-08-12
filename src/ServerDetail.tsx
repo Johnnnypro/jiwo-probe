@@ -295,7 +295,7 @@ function DetailMetric({ icon, label, value, percent, sub }: { icon: React.ReactN
   )
 }
 
-export function ServerDetail({ server, index, onClose }: { server: ProbeServer; index: number; onClose: () => void }) {
+export function ServerDetail({ server, index, onClose, showHealthScore = false }: { server: ProbeServer; index: number; onClose: () => void; showHealthScore?: boolean }) {
   const [selected, setSelected] = useState('__avg__')
   const [trendMode, setTrendMode] = useState<'latency' | 'loss' | 'traffic' | 'load' | 'cpu' | 'mem'>('latency')
   const name = server.name || `服务器 ${index + 1}`
@@ -326,13 +326,15 @@ export function ServerDetail({ server, index, onClose }: { server: ProbeServer; 
               <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
             </h2>
             <span className={server.online ? 'detail-online' : 'detail-offline'}>{server.online ? '在线' : '离线'}</span>
-            <span
-              className="detail-health-score"
-              data-tone={health.tone}
-              title={health.issues.join('、') || '运行状态正常'}
-            >
-              {health.score} · {health.label}
-            </span>
+            {showHealthScore && (
+              <span
+                className="detail-health-score"
+                data-tone={health.tone}
+                title={health.issues.join('、') || '运行状态正常'}
+              >
+                {health.score} · {health.label}
+              </span>
+            )}
           </div>
           {regionLabel(server) && <div className="detail-region">{regionLabel(server)}</div>}
           <button aria-label="关闭" onClick={onClose}>

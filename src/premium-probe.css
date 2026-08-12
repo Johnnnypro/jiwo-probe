@@ -298,6 +298,15 @@
   border-color: rgba(242, 210, 139, 0.62);
 }
 
+/* footer 关闭动画后的文字许可证: 与动画铭牌同尺寸(不缩小) */
+.premium-probe-footer .premium-probe-license-name {
+  min-height: 26px;
+  height: 26px;
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .premium-probe-login svg {
   width: 0.95rem;
   height: 0.95rem;
@@ -2870,6 +2879,14 @@
   padding: 0 1rem 1.5rem;
 }
 
+.premium-probe-footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .premium-probe-drawer-layer {
   position: fixed;
   z-index: 90;
@@ -3129,6 +3146,28 @@
   .premium-probe-live,
   .premium-probe-license {
     display: none;
+  }
+  /* 底部许可证: 单排横滚(替代三排换行) */
+  .premium-probe-footer {
+    flex-wrap: nowrap;
+  }
+  .premium-probe-footer-badges {
+    flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .premium-probe-footer-badges::-webkit-scrollbar {
+    display: none;
+  }
+  .premium-probe-footer-badges .premium-probe-license-badge {
+    flex-shrink: 0;
+  }
+  /* 关闭动画按钮固定在右侧独立占位, 不遮挡许可证 */
+  .premium-probe-footer .premium-probe-license-anim-toggle {
+    flex-shrink: 0;
   }
   .premium-probe-page > main {
     padding: 1rem;

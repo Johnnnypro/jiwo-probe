@@ -55,15 +55,13 @@ const licenseEaseInBack = (value: number) => {
   return (strength + 1) * value * value * value - strength * value * value
 }
 
-function LicenseNameplate({ label, isStatic = false }: { label: string; isStatic?: boolean }) {
+function LicenseNameplate({ label }: { label: string }) {
   const plateRef = useRef<HTMLSpanElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
   const starsRef = useRef<HTMLSpanElement>(null)
   const shineRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    // 静态模式: 不启动动画, 铭牌保持完整尺寸, 由 CSS .is-static 控制透明底/静止
-    if (isStatic) return
     const plate = plateRef.current
     const text = textRef.current
     const stars = starsRef.current
@@ -152,7 +150,7 @@ function LicenseNameplate({ label, isStatic = false }: { label: string; isStatic
   }, [])
 
   return (
-    <span ref={plateRef} className={isStatic ? 'license-nameplate is-static' : 'license-nameplate'}>
+    <span ref={plateRef} className='license-nameplate'>
       <span ref={textRef} className='np-text'>{label}</span>
       <span className='np-shine-clip' aria-hidden='true'>
         <span ref={shineRef} className='np-shine' />
@@ -258,13 +256,10 @@ function StandaloneLicenseBadge({
   badge,
   className,
   animated = false,
-  isStatic = false,
 }: {
   badge?: ProbePayload['license_badge']
   className?: string
   animated?: boolean
-  // 静态模式: 保持铭牌完整尺寸但透明底、无动画（footer 关闭动画时用）
-  isStatic?: boolean
 }) {
   // 本地支持多勋章: 数组取首个（与经典界面 Footer 合并展示不同, Premium 单铭牌位）
   const first = Array.isArray(badge) ? badge[0] : badge
@@ -276,8 +271,6 @@ function StandaloneLicenseBadge({
     <span className={cn('premium-probe-license-badge', className)}>
       {animated ? (
         <LicenseNameplate label={label} />
-      ) : isStatic ? (
-        <LicenseNameplate label={label} isStatic />
       ) : (
         <span className='premium-probe-license-name'>{label}</span>
       )}
@@ -1912,10 +1905,12 @@ function PremiumServerCard({
   server,
   index,
   onOpen,
+  showHealthScore,
 }: {
   server: ProbeServer
   index: number
   onOpen: () => void
+  showHealthScore: boolean
 }) {
   const mem = resourcePercentage(server.mem_used, server.mem_total)
   const disk = resourcePercentage(server.disk_used, server.disk_total)
@@ -1971,13 +1966,15 @@ function PremiumServerCard({
             {displayServerName(server.name, `#${index + 1}`, flag)}
           </Twemoji>
         </h3>
-        <span
-          className='premium-probe-health-score'
-          data-tone={health.tone}
-          title={health.issues.join('、') || '运行状态正常'}
-        >
-          {health.score} · {health.label}
-        </span>
+        {showHealthScore && (
+          <span
+            className='premium-probe-health-score'
+            data-tone={health.tone}
+            title={health.issues.join('、') || '运行状态正常'}
+          >
+            {health.score} · {health.label}
+          </span>
+        )}
         <span className='premium-probe-server-status'>
           <i
             className={cn(
@@ -2045,10 +2042,12 @@ function ServerDetailDrawer({
   server,
   index,
   onClose,
+  showHealthScore,
 }: {
   server: ProbeServer
   index: number
   onClose: () => void
+  showHealthScore: boolean
 }) {
   const health = serverHealth(server)
   const mem = resourcePercentage(server.mem_used, server.mem_total)
@@ -2079,13 +2078,15 @@ function ServerDetailDrawer({
             <X />
           </button>
         </header>
-        <section className='premium-probe-drawer-health'>
-          <strong data-tone={health.tone}>{health.score}</strong>
-          <div>
-            <span>综合健康度 · {health.label}</span>
-            <p>{health.issues.join('，') || '各项公开指标运行正常'}</p>
-          </div>
-        </section>
+        {showHealthScore && (
+          <section className='premium-probe-drawer-health'>
+            <strong data-tone={health.tone}>{health.score}</strong>
+            <div>
+              <span>综合健康度 · {health.label}</span>
+              <p>{health.issues.join('，') || '各项公开指标运行正常'}</p>
+            </div>
+          </section>
+        )}
         <div className='premium-probe-drawer-metrics'>
           {[
             ['CPU', server.cpu_pct],
@@ -2577,6 +2578,7 @@ export function PremiumProbePage({
                       index={index}
                       key={`${server.name || 'server'}-${index}`}
                       onOpen={() => setSelectedServer(index)}
+                      showHealthScore={data?.show_health_score === true}
                     />
                   ))}
                 </div>
@@ -2591,19 +2593,22 @@ export function PremiumProbePage({
           server={servers[selectedServer]}
           index={selectedServer}
           onClose={() => setSelectedServer(undefined)}
+          showHealthScore={data?.show_health_score === true}
         />
       )}
 
       <footer className='premium-probe-footer'>
-        {(() => {
-          // 与经典界面 Footer 同款去重: 本地 EXTRA 为主, 主控同名勋章覆盖, 其余主控勋章追加
-          const live = data?.license_badge ? (Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]) : []
-          const keyOf = (badge: { name?: string; display_name?: string }) => badge.name || badge.display_name || ''
-          const merged = EXTRA_LICENSE_BADGES.map((badge) => live.find((item) => keyOf(item) === keyOf(badge)) || badge)
-          const extras = live.filter((badge) => !EXTRA_LICENSE_BADGES.some((item) => keyOf(item) === keyOf(badge)))
-          const list = [...merged, ...extras].filter((badge, index, all) => all.findIndex((item) => keyOf(item) === keyOf(badge)) === index)
-          return list.map((badge, index) => <StandaloneLicenseBadge key={index} badge={badge} animated={licenseAnim} isStatic={!licenseAnim} />)
-        })()}
+        <div className='premium-probe-footer-badges'>
+          {(() => {
+            // 与经典界面 Footer 同款去重: 本地 EXTRA 为主, 主控同名勋章覆盖, 其余主控勋章追加
+            const live = data?.license_badge ? (Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]) : []
+            const keyOf = (badge: { name?: string; display_name?: string }) => badge.name || badge.display_name || ''
+            const merged = EXTRA_LICENSE_BADGES.map((badge) => live.find((item) => keyOf(item) === keyOf(badge)) || badge)
+            const extras = live.filter((badge) => !EXTRA_LICENSE_BADGES.some((item) => keyOf(item) === keyOf(badge)))
+            const list = [...merged, ...extras].filter((badge, index, all) => all.findIndex((item) => keyOf(item) === keyOf(badge)) === index)
+            return list.map((badge, index) => <StandaloneLicenseBadge key={index} badge={badge} animated={licenseAnim} />)
+          })()}
+        </div>
         <button
           type='button'
           className={`premium-probe-login premium-probe-license-anim-toggle${licenseAnim ? ' is-on' : ''}`}

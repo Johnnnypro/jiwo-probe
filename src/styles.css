@@ -2175,6 +2175,13 @@ footer a:hover {
     flex: 1;
     width: auto;
   }
+  /* 640px 下隐藏筛选工具栏横向滚动条(保留横滑, 不显示滚动条) */
+  .filters {
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar {
+    display: none;
+  }
 }
 :root.theme-anime .probe-toolbar {
   position: relative;
@@ -3246,6 +3253,80 @@ footer a:hover {
   background: linear-gradient(135deg, #1e2018 0%, #2a2a1e 48%, #14160f 100%);
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: #f2d28b;
+}
+/* 黑金: 页面角落金色光斑(premium 背景 radial-gradient 移植, 滚动时固定视口) */
+:root.theme-lumina.gold .app-shell {
+  background-image:
+    var(--lumina-top-glow),
+    radial-gradient(circle at 18% 8%, rgba(215, 166, 61, 0.09), transparent 24rem),
+    radial-gradient(circle at 82% 72%, rgba(215, 166, 61, 0.045), transparent 28rem);
+  background-size: 100% 100vh, auto, auto;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-attachment: scroll, fixed, fixed;
+}
+/* 黑金: 卡片顶部金色扫光(premium border-shine 移植, 10s 周期) */
+:root.theme-lumina.gold .lumina-card,
+:root.theme-lumina.gold .summary-card,
+:root.theme-lumina.gold .globe-card,
+:root.theme-lumina.gold .leaderboard-card {
+  position: relative;
+}
+:root.theme-lumina.gold .lumina-card::after,
+:root.theme-lumina.gold .summary-card::after,
+:root.theme-lumina.gold .globe-card::after,
+:root.theme-lumina.gold .leaderboard-card::after {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: -22%;
+  width: 20%;
+  height: 1px;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, #f2d489, transparent);
+  will-change: transform, opacity;
+  animation: lumina-border-shine 10s linear infinite;
+}
+@keyframes lumina-border-shine {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  5%,
+  95% {
+    opacity: 0.62;
+  }
+  100% {
+    transform: translateX(610%);
+    opacity: 0;
+  }
+}
+/* 黑金: 卡片背景金色光晕 + 底部金色外发光(premium panel/server-card/filters 移植) */
+:root.theme-lumina.gold .lumina-card,
+:root.theme-lumina.gold .summary-card,
+:root.theme-lumina.gold .probe-toolbar,
+:root.theme-lumina.gold .globe-card,
+:root.theme-lumina.gold .leaderboard-card {
+  background:
+    linear-gradient(140deg, rgba(216, 180, 106, 0.055), transparent 48%),
+    var(--surface);
+  box-shadow: 0 18px 38px -34px rgba(216, 180, 106, 0.92);
+}
+/* 离线卡保留红色语义底(光晕压暗不吞红色) */
+:root.theme-lumina.gold .lumina-card.is-offline {
+  background:
+    linear-gradient(140deg, rgba(216, 180, 106, 0.045), transparent 48%),
+    color-mix(in srgb, var(--status-error) 5%, var(--surface));
+}
+:root.theme-lumina.gold .lumina-card:hover,
+:root.theme-lumina.gold .summary-card:hover,
+:root.theme-lumina.gold .probe-toolbar:hover,
+:root.theme-lumina.gold .globe-card:hover,
+:root.theme-lumina.gold .leaderboard-card:hover {
+  background:
+    linear-gradient(140deg, rgba(216, 180, 106, 0.075), transparent 48%),
+    color-mix(in srgb, var(--hover-bg) 38%, var(--surface));
+  box-shadow: 0 20px 44px -28px rgba(216, 180, 106, 0.68);
 }
 :root.theme-lumina .app-shell {
   background: var(--page-bg);

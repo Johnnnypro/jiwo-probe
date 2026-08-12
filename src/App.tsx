@@ -2982,6 +2982,7 @@ export function App() {
           server={servers[detailIndex]}
           index={detailIndex}
           onClose={closeDetail}
+          showHealthScore={data?.show_health_score === true}
         />
       )}
     </div>
