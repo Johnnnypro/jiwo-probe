@@ -4,7 +4,7 @@ import { Activity, ArrowDown, ArrowUp, BadgeDollarSign, CalendarClock, ChevronLe
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbePingSeries, ProbeServer } from './types'
 import { Twemoji } from './Twemoji'
-import { Meter, ReturnRouteBadges, SystemIcon, TrafficChart, LoadTrendChart, SystemTrendChart, averagePing, bytes, expiring, expired, formatAxisDateTime, formatLossTick, hasLeadingFlag, HorizontalChart, lossScale, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
+import { Meter, ReturnRouteBadges, SystemIcon, TrafficChart, SystemTrendChart, averagePing, bytes, expiring, expired, formatAxisDateTime, formatLossTick, hasLeadingFlag, HorizontalChart, lossScale, pct, regionFlag, regionLabel, remainingDays, speed } from './App'
 import { serverHealth } from './PremiumProbePage'
 import { computeRemainingValue, formatMoney } from './value'
 
@@ -297,7 +297,7 @@ function DetailMetric({ icon, label, value, percent, sub }: { icon: React.ReactN
 
 export function ServerDetail({ server, index, onClose, showHealthScore = false }: { server: ProbeServer; index: number; onClose: () => void; showHealthScore?: boolean }) {
   const [selected, setSelected] = useState('__avg__')
-  const [trendMode, setTrendMode] = useState<'latency' | 'loss' | 'traffic' | 'load' | 'cpu' | 'mem'>('latency')
+  const [trendMode, setTrendMode] = useState<'latency' | 'loss' | 'traffic' | 'cpu' | 'mem'>('latency')
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   const ping = server.ping || []
@@ -489,7 +489,7 @@ export function ServerDetail({ server, index, onClose, showHealthScore = false }
           {!!ping.length && (
             <section className="detail-panel">
               <div className="detail-panel-head">
-                <h3>{trendMode === 'latency' ? '延迟趋势' : trendMode === 'loss' ? '丢包趋势' : trendMode === 'traffic' ? '日流量趋势' : trendMode === 'load' ? '负载趋势' : trendMode === 'cpu' ? 'CPU 趋势' : '内存趋势'}</h3>
+                <h3>{trendMode === 'latency' ? '延迟趋势' : trendMode === 'loss' ? '丢包趋势' : trendMode === 'traffic' ? '日流量趋势' : trendMode === 'cpu' ? 'CPU 趋势' : '内存趋势'}</h3>
                 <div className="trend-mode-switch" role="tablist" aria-label="趋势类型">
                   <button type="button" role="tab" aria-selected={trendMode === 'latency'} className={trendMode === 'latency' ? 'active' : ''} onClick={() => setTrendMode('latency')}>
                     延迟
@@ -499,9 +499,6 @@ export function ServerDetail({ server, index, onClose, showHealthScore = false }
                   </button>
                   <button type="button" role="tab" aria-selected={trendMode === 'traffic'} className={trendMode === 'traffic' ? 'active' : ''} onClick={() => setTrendMode('traffic')}>
                     流量
-                  </button>
-                  <button type="button" role="tab" aria-selected={trendMode === 'load'} className={trendMode === 'load' ? 'active' : ''} onClick={() => setTrendMode('load')}>
-                    负载
                   </button>
                   <button type="button" role="tab" aria-selected={trendMode === 'cpu'} className={trendMode === 'cpu' ? 'active' : ''} onClick={() => setTrendMode('cpu')}>
                     CPU
@@ -513,8 +510,6 @@ export function ServerDetail({ server, index, onClose, showHealthScore = false }
               </div>
               {trendMode === 'traffic' ? (
                 <TrafficChart daily={server.daily_traffic || []} containerClass="detail-chart detail-chart-traffic" />
-              ) : trendMode === 'load' ? (
-                <LoadTrendChart serverName={server.name || `服务器 ${index + 1}`} containerClass="detail-chart detail-chart-load" />
               ) : trendMode === 'cpu' ? (
                 <SystemTrendChart serverIndex={index} metric="cpu" containerClass="detail-chart detail-chart-system" />
               ) : trendMode === 'mem' ? (
