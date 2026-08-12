@@ -11,7 +11,7 @@
     "run_worker_first": ["/api/*"]
   },
   "kv_namespaces": [
-    { "binding": "LOAD_KV", "id": "3e102abf2d5a4b2cb552c9473f78720a" }
+    { "binding": "LOAD_KV", "id": "__LOAD_KV_ID__" }
   ],
   "triggers": {
     "crons": ["*/5 * * * *"]
