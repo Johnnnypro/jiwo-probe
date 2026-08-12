@@ -58,13 +58,11 @@
 - **地区分布折叠卡**——按地区聚合，全球 SVG 分布图
 - **资产总揽**——总剩余价值 / 月均成本 / 覆盖台数（按剩余天数折算，共享同一套算法），大数字垂直居中 + 左右分布
 - **服务器详情页**（hash 路由）——剩余价值、负载三值、上行/下行速度对称布局、到期与续费信息、回程线路、延迟/丢包率/日流量/负载趋势图、省市区展示；**健康分徽章**（头部在线状态旁：评分 · 等级，绿=健康/红=告警，悬停显示扣分原因——CPU/内存/硬盘压力、延迟、丢包、流量额度、到期时间综合评分；**跟随主控 `show_health_score` 开关，主控开启才显示**，经典详情页与金工 Premium 卡片/drawer 三处统一受控）；**趋势图鼠标跟随 tooltip 深色化**（跟随主题表面色 `--surface`，黑金/暗色下深底金字，浅色主题保持白底）
-- **负载历史曲线**——详情页"负载"tab：1/5/15 分钟负载三线趋势（1h/6h/24h 档位 + 缩放适应）；Lumina 主题卡片点击"负载"指标格直接弹出趋势图（与延迟/丢包率弹窗一致）。数据由 Worker 定时任务每 5 分钟采集主控探针数据写入 KV，自建历史，无需依赖上游
 - **CPU / 内存历史曲线**——详情页新增"CPU""内存"tab：CPU 使用率 / 内存占用百分比历史（1h/6h/24h 档位 + 缩放适应），数据来自上游 series `metric=system`（主控 beta3 原生支持）
 - **剩余价值计算**——日成本 × 剩余天数（含当天口径），支持月/季/半年/年周期多币种
 - **三许可证铭牌底栏**——手机端单行横滚，不占空间
 - **主控周期字段全面接线**——`traffic_used_up/down`（周期上下行，物理口径，up+down=total 与 daily_traffic 逐日求和精确一致）、`traffic_used_total`（周期总流量，重启不清零）、`period_start/end`（计费周期边界）：卡片/Lumina 卡周期上下行直读物理口径、详情页累计流量改周期统计、Lumina 卡剩余流量后显示重置倒计时 + 重置日
 - **表格流量列增强**——列表视图流量格显示 `↑ 上行 · ↓ 下行`（周期物理口径）+ 周期区间（MM-DD — MM-DD），点击弹出日流量趋势图
-- **负载历史 KV 改 name 关联**——原按服务器数组下标存储，主控增删/重排服务器会导致曲线错位；改为按服务器 name 存储/查询，换 IP、增删顺序均不影响（仅改名会断，待主控提供 server_id 根治）
 - **bytes 格式化去冗余 .0**——`1000.0 GB` → `1000 GB`（含四舍五入后恰为 X.0 的值），非整数精度不变
 
 ### 手机端适配
@@ -110,13 +108,6 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    - Build command：`npm run build`
    - Deploy command：`./scripts/deploy.sh`
    - Root directory：独立仓库留空
-3. 首次部署前，创建负载历史 KV namespace（Workers & Pages → KV → Create namespace），把返回的 id 填入构建设置的 **Build variables**：
-
-   | 名称 | 类型 | 值 |
-   | --- | --- | --- |
-   | `LOAD_KV_ID` | Text | KV namespace id（如 `9605fadfd0a04d2fae60f3f4c9b16e2f`） |
-
-   `scripts/deploy.sh` 在构建时用该 id 替换 `wrangler.jsonc` 里的 `__LOAD_KV_ID__` 占位符绑定 `LOAD_KV`（负载历史曲线存储）。不创建 KV 则部署直接失败。
 4. 首次部署后，进入 Worker 的 **Settings → Variables and Secrets**，添加运行时变量：
 
    | 名称 | 类型 | 值 |
@@ -141,12 +132,6 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    npx wrangler login
    ```
 
-2. 创建负载历史 KV namespace 并拿到 id：
-
-   ```bash
-   npx wrangler kv namespace create LOAD_KV
-   ```
-
 3. 在 Cloudflare Dashboard 的 **Settings → Variables and Secrets** 添加文本变量 `MMWX_ORIGIN`。地址必须是固定的 HTTPS 源站，不要包含路径或结尾斜杠。
 
 4. 将主控生成的密钥保存为 Worker Secret：
@@ -155,14 +140,13 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    npx wrangler secret put PROBE_TOKEN
    ```
 
-5. 构建并部署（脚本会用 `LOAD_KV_ID` 替换 `wrangler.jsonc` 里的 `__LOAD_KV_ID__` 占位符）：
+5. 构建并部署：
 
    ```bash
-   LOAD_KV_ID=<第 2 步拿到的 id> npm run deploy
-   # 或 export LOAD_KV_ID=<id> 后直接 npm run deploy；也可写入 .env.kv（不进 Git）
+   npm run deploy
    ```
 
-6. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
+5. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
 
 ### 绑定自定义域名
 

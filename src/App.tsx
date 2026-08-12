@@ -5,7 +5,7 @@ import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, C
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
-import { getActiveTheme, getDarkOverride, getThemeOverride, setDarkOverride, setTheme, useProbe } from './use-probe'
+import { EnrichedServer, getActiveTheme, getDarkOverride, getThemeOverride, setDarkOverride, setTheme, useProbe } from './use-probe'
 import { Twemoji } from './Twemoji'
 import { ServerDetail } from './ServerDetail'
 import { computeRemainingValue, formatMoney } from './value'
@@ -1125,171 +1125,6 @@ function TrendDialog({ serverIndex, initial, targetKey, title, mode, close }: { 
     document.body,
   )
 }
-
-const LOAD_LINES = [
-  { key: 'l1', label: '1 分钟', color: 'var(--primary, #8b5cf6)' },
-  { key: 'l5', label: '5 分钟', color: '#f59e0b' },
-  { key: 'l15', label: '15 分钟', color: '#22c55e' },
-] as const
-
-// 负载历史曲线（数据来自 /api/load，Worker cron 自建采集）。详情页与 Lumina 弹窗共用，containerClass 控制容器（详情页 detail-chart / 弹窗 chart）
-export function LoadTrendChart({ serverName, containerClass = 'detail-chart' }: { serverName: string; containerClass?: string }) {
-  const [range, setRange] = useState<RangeKey>('1h')
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
-  const [rows, setRows] = useState<{ ts: number; time: string; l1: number | null; l5: number | null; l15: number | null }[]>([])
-  const [loading, setLoading] = useState(true)
-  const [zoom, setZoom] = useState(1)
-  const [isFit, setIsFit] = useState(true)
-  const chartRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    setLoading(true)
-    void fetch(`/api/load?server=${encodeURIComponent(serverName)}&range=${range}`, {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        return response.json() as Promise<{
-          success: boolean
-          points?: { ts: number; l1: number; l5: number; l15: number }[]
-        }>
-      })
-      .then((payload) => {
-        if (payload.success && payload.points) {
-          setRows(
-            payload.points.map((p) => ({
-              ts: p.ts,
-              time: formatAxisDateTime(p.ts, range === '1h'),
-              l1: p.l1 ?? null,
-              l5: p.l5 ?? null,
-              l15: p.l15 ?? null,
-            })),
-          )
-        } else {
-          setRows([])
-        }
-      })
-      .catch(() => setRows([]))
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false)
-      })
-    return () => controller.abort()
-  }, [range, serverName])
-
-  const fitZoom = () => {
-    const el = chartRef.current
-    if (!el || !rows.length) return
-    const target = el.clientWidth / (rows.length * 82)
-    setZoom(Math.max(0.05, Math.min(8, target)))
-    setIsFit(true)
-  }
-  useEffect(() => {
-    if (!loading && rows.length) {
-      const raf = requestAnimationFrame(fitZoom)
-      return () => cancelAnimationFrame(raf)
-    }
-    return undefined
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range, loading])
-
-  const toggleHidden = (key: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
-
-  return (
-    <>
-      <div className="ranges">
-        {ranges.map((item) => (
-          <button type="button" className={range === item.key ? 'active' : ''} onClick={() => setRange(item.key)} key={item.key}>
-            {item.label}
-          </button>
-        ))}
-        <span className="ranges-sep" />
-        <button
-          type="button"
-          className="zoom-btn"
-          aria-label="缩小横轴"
-          title={`缩小横轴（当前 ${Math.round(zoom * 100)}%）`}
-          onClick={() => {
-            setZoom((value) => Math.max(0.05, Math.round((value - 0.1) * 10) / 10))
-            setIsFit(false)
-          }}
-        >
-          <ZoomOut size={13} />
-        </button>
-        <button type="button" className={`zoom-btn${isFit ? ' active' : ''}`} aria-label="适应屏幕宽度" title="适应屏幕宽度" onClick={fitZoom}>
-          <MoveHorizontal size={13} />
-        </button>
-        <button
-          type="button"
-          className="zoom-btn"
-          aria-label="放大横轴"
-          title={`放大横轴（当前 ${Math.round(zoom * 100)}%）`}
-          onClick={() => {
-            setZoom((value) => Math.min(8, Math.round((value + 0.1) * 10) / 10))
-            setIsFit(false)
-          }}
-        >
-          <ZoomIn size={13} />
-        </button>
-      </div>
-      <div className={containerClass} ref={chartRef}>
-        {loading && <div className="loading-overlay">加载中…</div>}
-        {!loading && !rows.length && <div className="chart-empty">暂无负载历史（采集约 5 分钟后出数据）</div>}
-        <HorizontalChart width={Math.max(120, rows.length * 82 * zoom)}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-              <XAxis dataKey="time" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
-              <YAxis width={40} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
-              <Tooltip
-                contentStyle={{ fontSize: 11, borderRadius: 8 }}
-                formatter={(value, _name, item) => [
-                  Number(value).toFixed(2),
-                  LOAD_LINES.find((l) => l.key === item.dataKey)?.label || String(item.dataKey),
-                ]}
-                labelFormatter={(_value, payload) => formatAxisDateTime(Number((payload?.[0]?.payload as { ts?: number } | undefined)?.ts ?? 0), true)}
-              />
-              {LOAD_LINES.map((line) =>
-                hidden.has(line.key) ? null : (
-                  <Line
-                    key={line.key}
-                    type="monotone"
-                    dataKey={line.key}
-                    name={line.label}
-                    stroke={line.color}
-                    strokeWidth={line.key === 'l1' ? 2.5 : 1.5}
-                    dot={false}
-                    connectNulls={false}
-                    isAnimationActive={false}
-                  />
-                ),
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </HorizontalChart>
-      </div>
-      <div className="legend">
-        {LOAD_LINES.map((line) => {
-          const off = hidden.has(line.key)
-          return (
-            <button type="button" className={off ? 'off' : ''} key={line.key} onClick={() => toggleHidden(line.key)} title={off ? '点击显示' : '点击隐藏'}>
-              <i style={{ background: line.color }} />
-              {line.label}
-            </button>
-          )
-        })}
-      </div>
-    </>
-  )
-}
-
 // 系统指标历史曲线（数据来自 /api/series?metric=system，beta3 上游原生支持）。metric='cpu' 单线 CPU%，'mem' 单线内存占用百分比
 const SYSTEM_LINES = {
   cpu: { label: 'CPU 使用率', color: 'var(--progress-cpu, #3b82f6)' },
@@ -1420,24 +1255,6 @@ export function SystemTrendChart({ serverIndex, metric, containerClass = 'detail
     </>
   )
 }
-
-function LoadTrendDialog({ serverName, title, close }: { serverName: string; title: string; close: () => void }) {
-  return createPortal(
-    <div className="modal-backdrop" role="presentation" onMouseDown={close}>
-      <section className="modal" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
-        <header>
-          <h2>{title} · 负载趋势</h2>
-          <button aria-label="关闭" onClick={close}>
-            ×
-          </button>
-        </header>
-        <LoadTrendChart serverName={serverName} containerClass="chart" />
-      </section>
-    </div>,
-    document.body,
-  )
-}
-
 function SystemTrendDialog({ serverIndex, title, metric, close }: { serverIndex: number; title: string; metric: 'cpu' | 'mem'; close: () => void }) {
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
@@ -1713,7 +1530,6 @@ function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'la
 function ServerCardLumina({ server, index }: { server: EnrichedServer; index: number }) {
   const isGold = document.documentElement.classList.contains('gold')
   const [trafficOpen, setTrafficOpen] = useState(false)
-  const [loadOpen, setLoadOpen] = useState(false)
   const [cpuOpen, setCpuOpen] = useState(false)
   const [memOpen, setMemOpen] = useState(false)
   const [healthTarget, setHealthTarget] = useState('__avg__')
@@ -1828,19 +1644,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
             <LuminaMetricBar icon={<HardDrive size={13} />} label="磁盘" value={`${pct(server.disk_used, server.disk_total).toFixed(1)}%`} detail={`${bytes(server.disk_used)} / ${bytes(server.disk_total)}`} paint="var(--progress-disk)" fraction={pct(server.disk_used, server.disk_total) / 100} />
           )}
           {load1 !== undefined && (
-            <button
-              type="button"
-              className="lumina-metric-btn"
-              aria-label="查看负载趋势"
-              title="点击查看负载趋势"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation()
-                setLoadOpen(true)
-              }}
-            >
-              <LuminaMetricBar icon={<Gauge size={13} />} label="负载" value={load1.toFixed(2)} detail={`${loadParts[1]?.toFixed(2) ?? '—'} / ${loadParts[2]?.toFixed(2) ?? '—'}`} paint="var(--progress-load)" fraction={loadFraction} />
-            </button>
+            <LuminaMetricBar icon={<Gauge size={13} />} label="负载" value={load1.toFixed(2)} detail={`${loadParts[1]?.toFixed(2) ?? '—'} / ${loadParts[2]?.toFixed(2) ?? '—'}`} paint="var(--progress-load)" fraction={loadFraction} />
           )}
         </div>
 
@@ -2026,7 +1830,6 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
         />
       )}
       {trafficOpen && <TrafficDialog server={server} close={() => setTrafficOpen(false)} />}
-      {loadOpen && <LoadTrendDialog serverName={name} title={name} close={() => setLoadOpen(false)} />}
       {cpuOpen && <SystemTrendDialog serverIndex={index} title={name} metric="cpu" close={() => setCpuOpen(false)} />}
       {memOpen && <SystemTrendDialog serverIndex={index} title={name} metric="mem" close={() => setMemOpen(false)} />}
     </>
@@ -2590,71 +2393,9 @@ function ProbeLicenseNameplate({ name, displayName }: { name?: string; displayNa
 // 注意：此数组为本地部署专属（私有勋章），推送到 GitHub 时由 git clean filter 自动剥离。
 import { EXTRA_LICENSE_BADGES } from './license-badges'
 
-// daily_traffic 跨周期历史: Worker cron 按天合并缓存(KV, 90天), 前端页面加载拉一次(日期变化时刷新),
-// 与 payload 的 daily_traffic(当前周期)合并 → 周期重置后脉冲图/日流量趋势仍有历史
-type DailyHistory = Record<string, Record<string, [number, number, number]>>
-function useDailyHistory(): DailyHistory | null {
-  const [history, setHistory] = useState<DailyHistory | null>(null)
-  useEffect(() => {
-    let stopped = false
-    let day = new Date().toISOString().slice(0, 10)
-    const load = async () => {
-      try {
-        const resp = await fetch('/api/daily-history', { cache: 'no-store' })
-        if (!resp.ok) return
-        const payload = (await resp.json()) as { success?: boolean; history?: DailyHistory }
-        if (stopped) return
-        const h = payload.history
-        if (h && Object.keys(h).length) setHistory(h)
-      } catch {
-        // 历史不可用不影响主流程
-      }
-    }
-    void load()
-    const timer = window.setInterval(() => {
-      const today = new Date().toISOString().slice(0, 10)
-      if (today !== day) {
-        day = today
-        void load()
-      }
-    }, 60_000)
-    return () => {
-      stopped = true
-      window.clearInterval(timer)
-    }
-  }, [])
-  return history
-}
-
-// 合并: 历史(按服务器名) 为底, payload 当天数据覆盖(最新值), 按日期排序。
-// 附加 cycle_daily_traffic = payload 原始周期内数据(周期拆分比例用, 避免被 90 天历史污染)
-type DailyRow = NonNullable<ProbeServer['daily_traffic']>[number]
-type EnrichedServer = ProbeServer & { cycle_daily_traffic?: DailyRow[] }
-function mergeDailyTraffic(servers: ProbeServer[], history: DailyHistory | null): EnrichedServer[] {
-  if (!history || !Object.keys(history).length) return servers
-  return servers.map((server) => {
-    const name = server.name?.trim()
-    if (!name) return server
-    const byDate = new Map<string, { uplink: number; downlink: number; total: number }>()
-    for (const [date, recs] of Object.entries(history)) {
-      const rec = recs?.[name]
-      if (rec) byDate.set(date, { uplink: rec[0], downlink: rec[1], total: rec[2] })
-    }
-    for (const row of server.daily_traffic || []) {
-      if (row?.date) byDate.set(row.date, { uplink: row.uplink ?? 0, downlink: row.downlink ?? 0, total: row.total ?? 0 })
-    }
-    if (!byDate.size) return server
-    const merged = [...byDate.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, rec]) => ({ date, uplink: rec.uplink, downlink: rec.downlink, total: rec.total }))
-    return { ...server, daily_traffic: merged, cycle_daily_traffic: server.daily_traffic || [] }
-  })
-}
-
 export function App() {
   const { data, error } = useProbe()
-  const dailyHistory = useDailyHistory()
-  const servers = useMemo(() => mergeDailyTraffic(data?.servers || [], dailyHistory), [data, dailyHistory])
+  const servers = data?.servers || []
   const [view, setView] = useState<'card' | 'list' | 'mini'>(() => (localStorage.getItem('probe-view') as 'card' | 'list' | 'mini') || 'card')
   const [miniExpanded, setMiniExpanded] = useState<boolean>(() => localStorage.getItem('probe-mini-expanded') === '1')
   const [filter, setFilter] = useState<'all' | 'online' | 'offline' | 'expiring' | 'expired' | 'renewal'>('all')
