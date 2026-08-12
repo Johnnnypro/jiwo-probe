@@ -637,6 +637,7 @@ button {
   vertical-align: -0.1em;
 }
 .status {
+  flex-shrink: 0;
   width: 9px;
   height: 9px;
   border-radius: 50%;
