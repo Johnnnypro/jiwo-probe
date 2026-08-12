@@ -1,9 +1,86 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ProbeAppearance, ProbePayload, ThemeName } from './types'
+import type { ProbeAppearance, ProbePayload, ProbeServer, ThemeName } from './types'
 
 const APPEARANCE_CACHE = 'mmwx-probe-appearance'
 const DARK_OVERRIDE = 'mmwx-probe-dark-override'
 const THEME_OVERRIDE = 'mmwx-probe-theme-override'
+
+// ===== 日流量跨周期历史(浏览器本地缓存, 保留 90 天) =====
+// 主控 daily_traffic 只含当前重置周期, 重置即清零 → 前端把每次 payload 合并进
+// localStorage, 过重置日后流量趋势图仍保留历史(换设备/清缓存会丢, 零服务端依赖)。
+const LOCAL_HIST_KEY = 'probe-daily-traffic-v1'
+const LOCAL_HIST_DAYS = 90
+
+type DailyHistory = Record<string, Record<string, [number, number, number]>>
+type DailyRow = NonNullable<ProbeServer['daily_traffic']>[number]
+export type EnrichedServer = ProbeServer & { cycle_daily_traffic?: DailyRow[] }
+
+function loadLocalHistory(): DailyHistory | null {
+  try {
+    const raw = localStorage.getItem(LOCAL_HIST_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as DailyHistory
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function persistLocalHistory(history: DailyHistory): void {
+  const cutoff = new Date(Date.now() - LOCAL_HIST_DAYS * 86400 * 1000).toISOString().slice(0, 10)
+  for (const name of Object.keys(history)) {
+    for (const date of Object.keys(history[name])) {
+      if (date < cutoff) delete history[name][date]
+    }
+    if (!Object.keys(history[name]).length) delete history[name]
+  }
+  try {
+    localStorage.setItem(LOCAL_HIST_KEY, JSON.stringify(history))
+  } catch {
+    // 存储满/隐私模式忽略
+  }
+}
+
+// 合并: 历史(按服务器名) 为底, payload 当天数据覆盖(最新值), 按日期排序。
+// 附加 cycle_daily_traffic = payload 原始周期内数据(周期拆分比例用, 避免被 90 天历史污染)
+function mergeDailyTraffic(servers: ProbeServer[], history: DailyHistory | null): EnrichedServer[] {
+  if (!history || !Object.keys(history).length) return servers
+  return servers.map((server) => {
+    const name = server.name?.trim()
+    if (!name) return server
+    const byDate = new Map<string, { uplink: number; downlink: number; total: number }>()
+    for (const [date, recs] of Object.entries(history)) {
+      const rec = recs?.[name]
+      if (rec) byDate.set(date, { uplink: rec[0], downlink: rec[1], total: rec[2] })
+    }
+    for (const row of server.daily_traffic || []) {
+      if (row?.date) byDate.set(row.date, { uplink: row.uplink ?? 0, downlink: row.downlink ?? 0, total: row.total ?? 0 })
+    }
+    if (!byDate.size) return server
+    const merged = [...byDate.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, rec]) => ({ date, uplink: rec.uplink, downlink: rec.downlink, total: rec.total }))
+    return { ...server, daily_traffic: merged, cycle_daily_traffic: server.daily_traffic || [] }
+  })
+}
+
+// payload 到达时: 合并本地跨周期历史并写回
+function enrichPayload(payload: ProbePayload): ProbePayload {
+  if (!payload?.servers?.length) return payload
+  const prev = loadLocalHistory()
+  const next: DailyHistory = prev && typeof prev === 'object' ? JSON.parse(JSON.stringify(prev)) : {}
+  for (const server of payload.servers) {
+    const name = server.name?.trim()
+    if (!name || !Array.isArray(server.daily_traffic)) continue
+    next[name] = next[name] ?? {}
+    for (const row of server.daily_traffic) {
+      if (!row?.date) continue
+      next[name][row.date] = [row.uplink ?? 0, row.downlink ?? 0, row.total ?? (row.uplink ?? 0) + (row.downlink ?? 0)]
+    }
+  }
+  persistLocalHistory(next)
+  return { ...payload, servers: mergeDailyTraffic(payload.servers, next) }
+}
 
 function normalizeTheme(value?: string): ThemeName {
   return value === 'anime' || value === 'flat' || value === 'glass' || value === 'lumina' ? value : 'pixel'
@@ -142,7 +219,7 @@ export function useProbe(): { data?: ProbePayload; error?: string } {
     const accept = (payload: ProbePayload) => {
       if (stopped) return
       applyAppearance(payload.appearance)
-      setData(payload)
+      setData(enrichPayload(payload))
       setError(undefined)
       if (payload.title) document.title = payload.title
     }

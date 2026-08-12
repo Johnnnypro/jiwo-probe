@@ -5,7 +5,7 @@ import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, C
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
-import { getActiveTheme, getDarkOverride, getThemeOverride, setDarkOverride, setTheme, useProbe } from './use-probe'
+import { EnrichedServer, getActiveTheme, getDarkOverride, getThemeOverride, setDarkOverride, setTheme, useProbe } from './use-probe'
 import { Twemoji } from './Twemoji'
 import { ServerDetail } from './ServerDetail'
 import { computeRemainingValue, formatMoney } from './value'
@@ -1553,12 +1553,12 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
   const trafficUp = server.cumulative_up
   const trafficDown = server.cumulative_down
   // 当前周期流量(物理口径): 主控 2026-08-10 新增 traffic_used_up/down(40/40 有值, 与Σdaily_traffic 精确一致)，
-  // 优先直读字段; 缺失回退 daily_traffic 每日上下行 sum 比例估算(物理口径), 再回退 cumulative, 再回退 0.5
+  // 优先直读字段; 缺失回退 cycle_daily_traffic 每日上下行 sum 比例估算(物理口径), 再回退 cumulative, 再回退 0.5
   // 注意: traffic_used(计费口径, oneway 只算单向) ≠ traffic_used_up+down(物理口径), 上下行展示用物理值
   let cycleUp = server.traffic_used_up
   let cycleDown = server.traffic_used_down
   if (cycleUp === undefined || cycleDown === undefined) {
-    const cycleDaily = server.daily_traffic ?? []
+    const cycleDaily = server.cycle_daily_traffic ?? server.daily_traffic ?? []
     const dailyUp = cycleDaily.reduce((acc, item) => acc + (item.uplink ?? 0), 0)
     const dailyDown = cycleDaily.reduce((acc, item) => acc + (item.downlink ?? 0), 0)
     const cycleRatioUp =
@@ -2392,8 +2392,6 @@ function ProbeLicenseNameplate({ name, displayName }: { name?: string; displayNa
 // 数组顺序即页面展示顺序。
 // 注意：此数组为本地部署专属（私有勋章），推送到 GitHub 时由 git clean filter 自动剥离。
 import { EXTRA_LICENSE_BADGES } from './license-badges'
-
-type EnrichedServer = ProbeServer
 
 export function App() {
   const { data, error } = useProbe()
