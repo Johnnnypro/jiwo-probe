@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   sync:
-    if: github.repository != 'mmwx-group/mmwx-probe'
+    # 官方仓库自身不跑；fork 仓库跑。upstream 指向定制源(chnnic/jiwo-probe)。
+    if: github.repository != 'chnnic/jiwo-probe'
     runs-on: ubuntu-latest
     steps:
       - name: Check out user repository
@@ -25,7 +26,7 @@ jobs:
 
       - name: Merge upstream updates
         env:
-          UPSTREAM_REPOSITORY: mmwx-group/mmwx-probe
+          UPSTREAM_REPOSITORY: chnnic/jiwo-probe
           UPSTREAM_BRANCH: main
         run: |
           git config user.name "github-actions[bot]"
