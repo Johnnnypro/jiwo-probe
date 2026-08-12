@@ -1442,8 +1442,7 @@ function luminaPulseColor(level: number): string {
   return 'color-mix(in srgb, var(--status-warning) 70%, var(--status-error) 30%)'
 }
 
-function LuminaTrafficPulse({ samples }: { samples: ProbeServer['daily_traffic'] }) {
-  const dots = 16
+function LuminaTrafficPulse({ samples, dots = 16 }: { samples: ProbeServer['daily_traffic']; dots?: number }) {
   const list = (samples || []).slice(-dots)
   const max = Math.max(1, ...list.map((item) => item.total ?? 0))
   return (
@@ -1574,6 +1573,14 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
     }
   }
   const expireValue = server.expires_at ? remainingDays(server.expires_at) : null
+  // 今日流量用量(本地时区当天; 当天无记录时回退 daily_traffic 最后一天)
+  const dailyRows = server.daily_traffic || []
+  const nowDate = new Date()
+  const todayStr = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}-${String(nowDate.getDate()).padStart(2, '0')}`
+  const todayRow = dailyRows.find((row) => row.date === todayStr) ?? dailyRows[dailyRows.length - 1]
+  const todayUp = todayRow ? (todayRow.uplink ?? 0) : null
+  const todayDown = todayRow ? (todayRow.downlink ?? 0) : null
+  const todayTotal = todayRow ? (todayRow.total ?? (todayUp ?? 0) + (todayDown ?? 0)) : null
   const renewText =
     server.renewal_price !== undefined
       ? server.renewal_price_cny !== undefined
@@ -1669,18 +1676,32 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
               <small className="tabular">{cycleDown !== undefined ? `周期 ${bytes(cycleDown)}` : ''}</small>
             </div>
             <div className="lumina-traffic-pulse-wrap">
+              <div className="lumina-today-stat" title="今日流量用量(总/上行/下行)">
+                <span className="lumina-today-head">
+                  <span className="lumina-today-label">今日</span>
+                  <strong className="tabular lumina-today-total">{todayTotal !== null ? bytes(todayTotal) : '—'}</strong>
+                </span>
+                <span className="lumina-today-row" style={{ color: 'var(--traffic-up)' }}>
+                  <ArrowUp size={12} />
+                  <strong className="tabular">{todayUp !== null ? bytes(todayUp) : '—'}</strong>
+                </span>
+                <span className="lumina-today-row" style={{ color: 'var(--traffic-down)' }}>
+                  <ArrowDown size={12} />
+                  <strong className="tabular">{todayDown !== null ? bytes(todayDown) : '—'}</strong>
+                </span>
+              </div>
               <button
                 type="button"
-                className="lumina-pulse-btn"
-                aria-label="查看流量趋势"
-                title="点击查看流量趋势"
+                className="lumina-pulse-btn lumina-week-btn"
+                aria-label="查看近 7 日流量趋势"
+                title="近 7 日流量 · 点击查看完整趋势"
                 onMouseDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation()
                   setTrafficOpen(true)
                 }}
               >
-                <LuminaTrafficPulse samples={server.daily_traffic} />
+                <LuminaTrafficPulse samples={server.daily_traffic} dots={7} />
               </button>
             </div>
           </div>
