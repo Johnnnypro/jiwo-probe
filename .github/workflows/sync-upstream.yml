@@ -2,8 +2,8 @@ name: Sync upstream
 
 on:
   schedule:
-    # 每天北京时间 11:23 检查更新，避开整点的 Actions 高峰。
-    - cron: '23 3 * * *'
+    # 每小时第 23 分钟检查更新，避开整点的 Actions 高峰。
+    - cron: '23 * * * *'
   workflow_dispatch:
 
 permissions:
