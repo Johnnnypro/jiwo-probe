@@ -3541,6 +3541,57 @@ footer a:hover {
 }
 .lumina-traffic-pulse-wrap {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(105px, auto) 1fr;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin-top: 10px;
+}
+.lumina-today-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 12px;
+  border-radius: var(--radius, 10px);
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+.lumina-today-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+.lumina-today-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.lumina-today-total {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lumina-today-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.lumina-today-row strong {
+  font-size: 12px;
+}
+.lumina-week-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
 }
 .lumina-traffic-pulse {
   display: flex;
