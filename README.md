@@ -108,9 +108,16 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
 2. 保持以下构建设置：
    - Production branch：`main`
    - Build command：`npm run build`
-   - Deploy command：`npx wrangler deploy`
+   - Deploy command：`./scripts/deploy.sh`
    - Root directory：独立仓库留空
-3. 首次部署后，进入 Worker 的 **Settings → Variables and Secrets**，添加运行时变量：
+3. 首次部署前，创建负载历史 KV namespace（Workers & Pages → KV → Create namespace），把返回的 id 填入构建设置的 **Build variables**：
+
+   | 名称 | 类型 | 值 |
+   | --- | --- | --- |
+   | `LOAD_KV_ID` | Text | KV namespace id（如 `9605fadfd0a04d2fae60f3f4c9b16e2f`） |
+
+   `scripts/deploy.sh` 在构建时用该 id 替换 `wrangler.jsonc` 里的 `__LOAD_KV_ID__` 占位符绑定 `LOAD_KV`（负载历史曲线存储）。不创建 KV 则部署直接失败。
+4. 首次部署后，进入 Worker 的 **Settings → Variables and Secrets**，添加运行时变量：
 
    | 名称 | 类型 | 值 |
    | --- | --- | --- |
@@ -118,8 +125,8 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    | `PROBE_TOKEN` | Secret | 主控"系统设置 → 探针"生成的访问密钥 |
 
    注意这里是 Worker 的运行时 **Variables and Secrets**，不是 **Build Variables and Secrets**。保存后点击 Deploy，使变量进入当前部署。
-4. 打开 Worker 地址，确认服务器列表、趋势图和实时更新正常。
-5. 最后回到主控，开启"仅允许独立探针访问"。此后直接访问主控的探针接口会返回 `404`。
+5. 打开 Worker 地址，确认服务器列表、趋势图和实时更新正常。
+6. 最后回到主控，开启"仅允许独立探针访问"。此后直接访问主控的探针接口会返回 `404`。
 
 连接 GitHub 后，每次推送到 `main` 分支都会由 Workers Builds 自动构建和部署。
 
@@ -134,21 +141,28 @@ Worker 仅代理三个固定路径，不接受访客指定上游地址，因此�
    npx wrangler login
    ```
 
-2. 在 Cloudflare Dashboard 的 **Settings → Variables and Secrets** 添加文本变量 `MMWX_ORIGIN`。地址必须是固定的 HTTPS 源站，不要包含路径或结尾斜杠。
+2. 创建负载历史 KV namespace 并拿到 id：
 
-3. 将主控生成的密钥保存为 Worker Secret：
+   ```bash
+   npx wrangler kv namespace create LOAD_KV
+   ```
+
+3. 在 Cloudflare Dashboard 的 **Settings → Variables and Secrets** 添加文本变量 `MMWX_ORIGIN`。地址必须是固定的 HTTPS 源站，不要包含路径或结尾斜杠。
+
+4. 将主控生成的密钥保存为 Worker Secret：
 
    ```bash
    npx wrangler secret put PROBE_TOKEN
    ```
 
-4. 构建并部署：
+5. 构建并部署（脚本会用 `LOAD_KV_ID` 替换 `wrangler.jsonc` 里的 `__LOAD_KV_ID__` 占位符）：
 
    ```bash
-   npm run deploy
+   LOAD_KV_ID=<第 2 步拿到的 id> npm run deploy
+   # 或 export LOAD_KV_ID=<id> 后直接 npm run deploy；也可写入 .env.kv（不进 Git）
    ```
 
-5. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
+6. 打开 Wrangler 输出的 `workers.dev` 地址，确认列表、趋势图和实时更新正常。最后回到主控，开启"仅允许独立探针访问"。开启后，未携带 Worker 密钥直接访问主控探针接口会返回 `404`。
 
 ### 绑定自定义域名
 
