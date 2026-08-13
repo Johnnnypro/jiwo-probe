@@ -1,21 +1,22 @@
 name: Sync upstream
 
 on:
-  schedule:
-    # 每小时第 23 分钟检查更新，避开整点的 Actions 高峰。
-    - cron: '23 * * * *'
   workflow_dispatch:
+    inputs:
+      upstream_sha:
+        description: Upstream commit detected by Cloudflare
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: sync-upstream-${{ github.ref }}
+  group: sync-upstream-main
   cancel-in-progress: false
 
 jobs:
   sync:
-    # 官方仓库自身不跑；fork 仓库跑。upstream 指向定制源(chnnic/jiwo-probe)。
     if: github.repository != 'chnnic/jiwo-probe'
     runs-on: ubuntu-latest
     steps:
@@ -28,18 +29,30 @@ jobs:
         env:
           UPSTREAM_REPOSITORY: chnnic/jiwo-probe
           UPSTREAM_BRANCH: main
+          REQUESTED_UPSTREAM_SHA: ${{ inputs.upstream_sha }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
           git fetch --no-tags upstream "${UPSTREAM_BRANCH}"
 
-          # 工作流由 fork 自己维护，避免 GITHUB_TOKEN 因 workflow 权限不足而拒绝推送。
-          if git diff --quiet HEAD "upstream/${UPSTREAM_BRANCH}" -- . ':(exclude).github/workflows/**'; then
+          UPSTREAM_SHA="$(git rev-parse "upstream/${UPSTREAM_BRANCH}")"
+          if [[ -n "${REQUESTED_UPSTREAM_SHA}" && "${REQUESTED_UPSTREAM_SHA}" != "${UPSTREAM_SHA}" ]]; then
+            echo "Upstream advanced again; syncing ${UPSTREAM_SHA}."
+          fi
+
+          git diff --binary HEAD "upstream/${UPSTREAM_BRANCH}" -- . \
+            ':(exclude).github/workflows/**' \
+            ':(exclude).upstream-sha' | git apply --index
+
+          printf '%s\n' "${UPSTREAM_SHA}" > .upstream-sha
+          git add .upstream-sha
+
+          if git diff --cached --quiet; then
             echo "Already up to date."
             exit 0
           fi
 
-          git diff --binary HEAD "upstream/${UPSTREAM_BRANCH}" -- . ':(exclude).github/workflows/**' | git apply --index
-          git commit -m "chore: sync upstream ${UPSTREAM_REPOSITORY}@$(git rev-parse --short "upstream/${UPSTREAM_BRANCH}")"
+          git commit -m "chore: sync upstream ${UPSTREAM_REPOSITORY}@$(git rev-parse --short "${UPSTREAM_SHA}")"
           git push origin "HEAD:${GITHUB_REF_NAME}"
