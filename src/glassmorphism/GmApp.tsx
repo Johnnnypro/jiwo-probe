@@ -34,6 +34,7 @@ import {
   ReturnRouteBadges,
   SystemIcon,
   TrafficDialog,
+  TrendDialog,
   averagePing,
   bytes,
   expiring,
@@ -62,7 +63,7 @@ function formatUptimeDays(seconds: number): string {
   return `${Math.floor(seconds / 86400)} 天`
 }
 
-const CYCLE_LABELS: Record<string, string> = { hour: '时', day: '天', week: '周', month: '月', quarterly: '季', halfyear: '半年', year: '年', twoyear: '两年', threeyear: '三年', onetime: '一次性' }
+const CYCLE_LABELS: Record<string, string> = { month: '月', quarter: '季', half_year: '半年', year: '年' }
 
 function systemTitle(server: ProbeServer): string {
   const parts = [server.os, server.cpu_model, server.arch].filter(Boolean)
@@ -76,8 +77,20 @@ function splitBytesText(value: number): { value: string; unit: string } {
   return { value: match[1], unit: match[2] || '' }
 }
 
+function bitSpeed(bytesPerSecond = 0): string {
+  let value = Math.max(0, bytesPerSecond) * 8
+  const units = ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps']
+  let unit = 0
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000
+    unit++
+  }
+  const digits = value >= 100 ? 0 : value >= 10 ? 1 : 2
+  return `${value.toFixed(digits)} ${units[unit]}`
+}
+
 function splitSpeedText(value: number): { value: string; unit: string } {
-  const v = speed(value)
+  const v = bitSpeed(value)
   const match = /^([\d.]+)\s*([\w/]+)?$/.exec(v)
   if (!match) return { value: v, unit: '' }
   return { value: match[1], unit: match[2] || '' }
@@ -132,6 +145,7 @@ function buildRegions(servers: ProbeServer[]): GmRegion[] {
 /* ================= 节点卡（照搬 Komari NodeCard 结构） ================= */
 function GmNodeCard({ server, index }: { server: EnrichedServer; index: number }) {
   const [trafficOpen, setTrafficOpen] = useState(false)
+  const [trendMode, setTrendMode] = useState<'latency' | 'loss' | null>(null)
   const name = server.name || `服务器 ${index + 1}`
   const flag = regionFlag(server.region)
   const isOffline = !server.online
@@ -296,11 +310,11 @@ function GmNodeCard({ server, index }: { server: EnrichedServer; index: number }
             <div className="gm-quick-cell">
               <div className="gm-quick-line gm-q-up">
                 <ArrowUp size={11} />
-                <span>{speed(server.upload_speed)}</span>
+                <span>{bitSpeed(server.upload_speed)}</span>
               </div>
               <div className="gm-quick-line gm-q-down">
                 <ArrowDown size={11} />
-                <span>{speed(server.download_speed)}</span>
+                <span>{bitSpeed(server.download_speed)}</span>
               </div>
             </div>
             <div className="gm-quick-cell">
@@ -328,7 +342,7 @@ function GmNodeCard({ server, index }: { server: EnrichedServer; index: number }
           {(latencyBars.length > 0 || lossBars.length > 0) && (
             <div className="gm-ping-row">
               {latencyBars.length > 0 && (
-                <button type="button" className="gm-ping-cell" title={`平均延迟 ${avgMs >= 0 ? avgMs.toFixed(0) : '超时'} ms`} aria-label={`${name} 延迟监测`} onClick={(event) => event.stopPropagation()}>
+                <button type="button" className="gm-ping-cell" title={`平均延迟 ${avgMs >= 0 ? avgMs.toFixed(0) : '超时'} ms · 点击看趋势`} aria-label={`${name} 延迟监测`} onClick={(event) => { event.stopPropagation(); setTrendMode('latency') }}>
                   <div className="gm-ping-head">
                     <span>延迟</span>
                     <span className="gm-ping-value">{avgMs < 0 ? '超时' : `${avgMs.toFixed(0)} ms`}</span>
@@ -341,7 +355,7 @@ function GmNodeCard({ server, index }: { server: EnrichedServer; index: number }
                 </button>
               )}
               {lossBars.length > 0 && (
-                <button type="button" className="gm-ping-cell" title={`平均丢包 ${avgLoss.toFixed(1)}%`} aria-label={`${name} 丢包监测`} onClick={(event) => event.stopPropagation()}>
+                <button type="button" className="gm-ping-cell" title={`平均丢包 ${avgLoss.toFixed(1)}% · 点击看趋势`} aria-label={`${name} 丢包监测`} onClick={(event) => { event.stopPropagation(); setTrendMode('loss') }}>
                   <div className="gm-ping-head">
                     <span>丢包</span>
                     <span className="gm-ping-value">{avgLoss.toFixed(1)}%</span>
@@ -356,6 +370,16 @@ function GmNodeCard({ server, index }: { server: EnrichedServer; index: number }
             </div>
           )}
           {/* 三网回程文字标签 */}
+          {trendMode && (
+            <TrendDialog
+              serverIndex={index}
+              initial={server.ping || []}
+              targetKey="__avg__"
+              title={name}
+              mode={trendMode}
+              close={() => setTrendMode(null)}
+            />
+          )}
           {routeLines.length > 0 ? (
             <div className="gm-tags">
               {routeLines.map((line) => (
@@ -449,7 +473,7 @@ function GmGeneralCards({ servers }: { servers: ProbeServer[] }) {
         icon: <ArrowUp size={20} />,
         value: upSpeed.value,
         unit: upSpeed.unit,
-        tooltip: `所有在线节点实时上行合计 ${speed(up)}`,
+        tooltip: `所有在线节点实时上行合计 ${bitSpeed(up)}`,
       },
       {
         key: 'downloadSpeed',
@@ -457,7 +481,7 @@ function GmGeneralCards({ servers }: { servers: ProbeServer[] }) {
         icon: <ArrowDown size={20} />,
         value: downSpeed.value,
         unit: downSpeed.unit,
-        tooltip: `所有在线节点实时下行合计 ${speed(down)}`,
+        tooltip: `所有在线节点实时下行合计 ${bitSpeed(down)}`,
       },
     ]
     return result
@@ -559,7 +583,12 @@ export default function GmApp({
   const [search, setSearch] = useState('')
   const [view, setView] = useState<'card' | 'list'>(() => (localStorage.getItem('probe-view') === 'list' ? 'list' : 'card'))
   const [detailIndex, setDetailIndex] = useState<number | null>(null)
-  const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => (localStorage.getItem('gm-color-mode') === 'light' ? 'light' : 'dark'))
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>(() => {
+    // 优先级: 用户手动切过 > 主控下发(glassmorphism light/dark) > 默认夜间
+    const user = localStorage.getItem('gm-color-mode')
+    const master = localStorage.getItem('gm-color-mode-master')
+    return (user ?? master) === 'light' ? 'light' : 'dark'
+  })
   const [themeOverride, setThemeOverride] = useState<ThemeName | null>(() => {
     const v = localStorage.getItem('mmwx-probe-theme-override')
     return THEME_OPTIONS.some((opt) => opt.value === v) ? (v as ThemeName) : null
@@ -710,9 +739,9 @@ export default function GmApp({
                         <td className="tabular">{server.disk_total ? `${pct(server.disk_used, server.disk_total).toFixed(1)}%` : '—'}</td>
                         <td className="tabular">{server.traffic_used !== undefined ? bytes(server.traffic_used, false) : '—'}</td>
                         <td className="tabular">
-                          <span className="gm-table-speed-down">{speed(server.download_speed)}</span>
+                          <span className="gm-table-speed-down">{bitSpeed(server.download_speed)}</span>
                           {' / '}
-                          <span className="gm-table-speed-up">{speed(server.upload_speed)}</span>
+                          <span className="gm-table-speed-up">{bitSpeed(server.upload_speed)}</span>
                         </td>
                       </tr>
                     )
