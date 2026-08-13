@@ -15,6 +15,7 @@ import premiumRouteAnimation from './assets/return-route/premium.json'
 const colors = ['#8b5cf6', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#ec4899']
 const RegionGlobe = lazy(() => import('./RegionGlobe').then((module) => ({ default: module.RegionGlobe })))
 const PremiumProbePage = lazy(() => import('./PremiumProbePage').then((module) => ({ default: module.PremiumProbePage })))
+const GmApp = lazy(() => import('./glassmorphism/GmApp').then((module) => ({ default: module.default })))
 const ranges = [
   {
     key: '1h',
@@ -247,6 +248,7 @@ const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
   { value: 'lumina', label: 'Lumina' },
   { value: 'premium', label: 'Premium' },
   { value: 'ran', label: '岚 · Ran' },
+  { value: 'glassmorphism', label: 'Glassmorphism' },
 ]
 
 function ThemeSelect({ value, onChange }: { value: ThemeName | null; onChange: (name: ThemeName | null) => void }) {
@@ -835,7 +837,7 @@ export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily
   )
 }
 
-function TrafficDialog({ server, close }: { server: ProbeServer; close: () => void }) {
+export function TrafficDialog({ server, close }: { server: ProbeServer; close: () => void }) {
   return createPortal(
     <div className="modal-backdrop" role="presentation" onMouseDown={close}>
       <section className="modal" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
@@ -1273,7 +1275,7 @@ function SystemTrendDialog({ serverIndex, title, metric, close }: { serverIndex:
   )
 }
 
-function PingPanel({ ping, serverIndex }: { ping: ProbePingSeries[]; serverIndex: number }) {
+export function PingPanel({ ping, serverIndex }: { ping: ProbePingSeries[]; serverIndex: number }) {
   const [mode, setMode] = useState<'latency' | 'loss' | null>(null)
   const [selected, setSelected] = useState('__avg__')
   const average = averagePing(ping)
@@ -2522,6 +2524,14 @@ export function App() {
     return (
       <Suspense fallback={<main className="center">正在加载 Premium 主题…</main>}>
         <PremiumProbePage data={data} isLoading={false} isError={false} onThemeChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
+      </Suspense>
+    )
+  }
+  // glassmorphism 主题: 整页 Glassmorphism 界面（复刻 Komari Glassmorphism 主题）
+  if (activeTheme === 'glassmorphism') {
+    return (
+      <Suspense fallback={<main className="center">正在加载 Glassmorphism 主题…</main>}>
+        <GmApp data={data} onThemeChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
       </Suspense>
     )
   }
