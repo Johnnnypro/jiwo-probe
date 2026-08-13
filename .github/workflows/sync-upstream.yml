@@ -1,6 +1,11 @@
 name: Sync upstream
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/sync-upstream.yml'
   schedule:
     # 每小时第 23 分钟检查更新，避开整点的 Actions 高峰。
     - cron: '23 * * * *'
