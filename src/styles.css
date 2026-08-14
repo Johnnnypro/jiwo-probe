@@ -1778,6 +1778,11 @@ footer a:hover {
 .leaderboard-list .lb-main:hover {
   background: color-mix(in srgb, var(--foreground) 6%, transparent);
 }
+/* 点击反馈: 移动端无 hover, :active 让按压有可见变化(#175 反馈"无任何可见反馈") */
+.leaderboard-list .lb-main:active {
+  background: color-mix(in srgb, var(--foreground) 12%, transparent);
+  transform: scale(0.985);
+}
 .leaderboard-list .lb-expand {
   flex: 0 0 auto;
   width: 26px;
@@ -3352,8 +3357,9 @@ footer a:hover {
   --status-success: #2f7d3c;
   --status-warning: #a87c22;
   --status-error: #c0342c;
-  --traffic-up: #f2d28b;
-  --traffic-down: #d8b46a;
+  /* 今日流量/速率数值: 白金下加深(亮金 #f2d28b/#d8b46a 浅底太淡, 2026-08-15) */
+  --traffic-up: #c9962b;
+  --traffic-down: #a87c22;
   --lumina-heat: linear-gradient(
     to right,
     /* 白金: 直接用黑金同款 4 色渐变 */

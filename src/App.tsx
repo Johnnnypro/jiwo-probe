@@ -613,11 +613,32 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
               </button>
             ))}
           </div>
-          <ol className="leaderboard-list">
+          <ol
+            className="leaderboard-list"
+            onClick={(event) => {
+              // 事件委托: 轮询刷新等 DOM 时序下子按钮可能被替换, 直接绑定会丢事件(#175)
+              // 在稳定父级 ol 上统一处理, 通过 data-idx 定位
+              const target = event.target as HTMLElement
+              const main = target.closest('.lb-main')
+              if (main) {
+                const idx = main.getAttribute('data-idx')
+                if (idx !== null && idx !== '') location.hash = `#/server/${idx}`
+                return
+              }
+              const expand = target.closest('.lb-expand')
+              if (expand) {
+                const idx = expand.getAttribute('data-idx')
+                if (idx !== null && idx !== '') {
+                  const n = Number(idx)
+                  setExpanded((prev) => (prev === n ? null : n))
+                }
+              }
+            }}
+          >
             {rows.map(({ server, index, value, lines }, rank) => (
               <li key={`${server.name}-${index}`}>
                 <div className="lb-row">
-                  <button type="button" className="lb-main" onClick={() => (location.hash = `#/server/${index}`)}>
+                  <button type="button" className="lb-main" data-idx={index}>
                     <span className="rank">{rank + 1}</span>
                     <span className="lb-name">
                       <Twemoji>
@@ -634,7 +655,7 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
                       type="button"
                       className={`lb-expand${expanded === index ? ' open' : ''}`}
                       aria-label={expanded === index ? '收起线路明细' : '展开线路明细'}
-                      onClick={() => setExpanded((prev) => (prev === index ? null : index))}
+                      data-idx={index}
                     >
                       <ChevronDown size={13} />
                     </button>
@@ -1135,6 +1156,14 @@ const SYSTEM_LINES = {
   cpu: { label: 'CPU 使用率', color: 'var(--progress-cpu, #3b82f6)' },
   mem: { label: '内存使用率', color: 'var(--progress-memory, #8b5cf6)' },
 } as const
+// 趋势图曲线色: 黑金/白金下 --progress-* 已是渐变字符串(SVG stroke 不接受渐变, 曲线会失效),
+// 必须渲染时用纯色: 白金=主题金(CPU 中金/内存深金), 黑金=亮金
+function systemLineColor(metric: 'cpu' | 'mem'): string {
+  const root = document.documentElement
+  if (root.classList.contains('platinum')) return metric === 'cpu' ? '#c9962b' : '#a87c22'
+  if (root.classList.contains('gold')) return '#d8b46a'
+  return metric === 'cpu' ? 'var(--progress-cpu, #3b82f6)' : 'var(--progress-memory, #8b5cf6)'
+}
 export function SystemTrendChart({ serverIndex, metric, containerClass = 'detail-chart' }: { serverIndex: number; metric: 'cpu' | 'mem'; containerClass?: string }) {
   const [range, setRange] = useState<RangeKey>('1h')
   const [hidden, setHidden] = useState(false)
@@ -1193,7 +1222,7 @@ export function SystemTrendChart({ serverIndex, metric, containerClass = 'detail
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, loading])
 
-  const line = SYSTEM_LINES[metric]
+  const line = { ...SYSTEM_LINES[metric], color: systemLineColor(metric) }
   return (
     <>
       <div className="ranges">
@@ -1806,7 +1835,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
                 </select>
                 <ChevronDown size={10} className="lumina-health-select-arrow" aria-hidden />
               </span>
-              <strong className="tabular" style={{ color: currentMs === null ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : isPlatinum ? '#f2d28b' : currentMs < 60 ? 'var(--status-success)' : currentMs < 120 ? 'var(--status-warning)' : 'var(--status-error)' }}>
+              <strong className="tabular" style={{ color: currentMs === null ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : isPlatinum ? luminaHeatColor('latency', currentMs) : currentMs < 60 ? 'var(--status-success)' : currentMs < 120 ? 'var(--status-warning)' : 'var(--status-error)' }}>
                 {currentMs === null ? '—' : `${Math.round(currentMs)}`}
                 <small>ms</small>
               </strong>
@@ -1831,7 +1860,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
                 <Unplug size={13} />
                 丢包率
               </span>
-              <strong className="tabular" style={{ color: lossAvg < 0 ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : isPlatinum ? '#f2d28b' : lossAvg < 1 ? 'var(--status-success)' : lossAvg < 5 ? 'var(--status-warning)' : 'var(--status-error)' }}>
+              <strong className="tabular" style={{ color: lossAvg < 0 ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : isPlatinum ? luminaHeatColor('loss', lossAvg) : lossAvg < 1 ? 'var(--status-success)' : lossAvg < 5 ? 'var(--status-warning)' : 'var(--status-error)' }}>
                 {lossAvg < 0 ? '—' : lossAvg.toFixed(1)}
                 <small>%</small>
               </strong>
@@ -2496,8 +2525,9 @@ export function App() {
       const match = /^#\/server\/(\d+)$/.exec(window.location.hash)
       const next = match ? Number(match[1]) : null
       if (next !== null) {
-        // 打开详情页：记录主页面滚动位置，供关闭时恢复
+        // 打开详情页：记录主页面滚动位置，供关闭时恢复；详情页从顶部展示(#175 点击榜单项后停留榜单位置看不到详情)
         detailScrollRef.current = window.scrollY
+        window.scrollTo(0, 0)
       } else {
         // 关闭详情页：恢复到最后浏览的位置
         window.scrollTo(0, detailScrollRef.current)
