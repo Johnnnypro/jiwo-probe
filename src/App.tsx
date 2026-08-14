@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Database, Gauge, Gem, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Crown, Database, Gauge, Gem, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
@@ -1388,6 +1388,10 @@ function luminaHeatGradient(): string {
   if (document.documentElement.classList.contains('gold')) {
     return 'linear-gradient(to right, #a8843f 0%, #c9a255 30%, #d8b46a 60%, #f2d28b 100%)'
   }
+  // 白金配色: 直接用黑金同款 4 色渐变(2026-08-15 用户要求 "直接用黑金那个")
+  if (document.documentElement.classList.contains('platinum')) {
+    return 'linear-gradient(to right, #a8843f 0%, #c9a255 30%, #d8b46a 60%, #f2d28b 100%)'
+  }
   return LUMINA_HEAT_GRADIENT
 }
 
@@ -1440,6 +1444,14 @@ function luminaPulseColor(level: number): string {
     if (level < 0.6) return '#c9a255'
     if (level < 0.85) return '#d8b46a'
     // 最高柱: 压至比次高档略暗, 不再抢眼(原 #f2d28b → #e3c176 → #d3ac63)
+    return '#d3ac63'
+  }
+  // 白金配色: 直接用黑金延迟色(2026-08-15 用户要求, 主基调提亮)
+  if (document.documentElement.classList.contains('platinum')) {
+    if (level <= 0.01) return 'var(--progress-bg)'
+    if (level < 0.3) return '#a8843f'
+    if (level < 0.6) return '#c9a255'
+    if (level < 0.85) return '#d8b46a'
     return '#d3ac63'
   }
   // 相对峰值分档: 无流量灰 → 低绿 → 中蓝 → 高琥珀 → 极高暖橙(琥珀+30%红, 避免刺眼红)
@@ -1495,6 +1507,18 @@ function luminaHeatColor(kind: 'latency' | 'loss', value: number): string {
     if (value < 5) return '#d8b46a'
     return '#f2d28b'
   }
+  // 白金配色: 直接用黑金延迟柱色(2026-08-15 用户要求, 主基调提亮)
+  if (document.documentElement.classList.contains('platinum')) {
+    if (value < 0) return 'var(--progress-bg)'
+    if (kind === 'latency') {
+      if (value < 100) return '#c9a255'
+      if (value < 200) return '#d8b46a'
+      return '#f2d28b'
+    }
+    if (value < 1) return '#c9a255'
+    if (value < 5) return '#d8b46a'
+    return '#f2d28b'
+  }
   // 与延迟/丢包数值同色系(status tokens, 阈值仿原版 latency/loss bounds)
   if (kind === 'latency') {
     if (value < 100) return 'var(--status-success)'
@@ -1538,6 +1562,7 @@ function LuminaHealthBars({ buckets, kind }: { buckets: ProbeBucket[]; kind: 'la
 
 function ServerCardLumina({ server, index }: { server: EnrichedServer; index: number }) {
   const isGold = document.documentElement.classList.contains('gold')
+  const isPlatinum = document.documentElement.classList.contains('platinum')
   const [trafficOpen, setTrafficOpen] = useState(false)
   const [cpuOpen, setCpuOpen] = useState(false)
   const [memOpen, setMemOpen] = useState(false)
@@ -1781,7 +1806,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
                 </select>
                 <ChevronDown size={10} className="lumina-health-select-arrow" aria-hidden />
               </span>
-              <strong className="tabular" style={{ color: currentMs === null ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : currentMs < 60 ? 'var(--status-success)' : currentMs < 120 ? 'var(--status-warning)' : 'var(--status-error)' }}>
+              <strong className="tabular" style={{ color: currentMs === null ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : isPlatinum ? '#f2d28b' : currentMs < 60 ? 'var(--status-success)' : currentMs < 120 ? 'var(--status-warning)' : 'var(--status-error)' }}>
                 {currentMs === null ? '—' : `${Math.round(currentMs)}`}
                 <small>ms</small>
               </strong>
@@ -1806,7 +1831,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
                 <Unplug size={13} />
                 丢包率
               </span>
-              <strong className="tabular" style={{ color: lossAvg < 0 ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : lossAvg < 1 ? 'var(--status-success)' : lossAvg < 5 ? 'var(--status-warning)' : 'var(--status-error)' }}>
+              <strong className="tabular" style={{ color: lossAvg < 0 ? 'var(--text-tertiary)' : isGold ? '#f2d28b' : isPlatinum ? '#f2d28b' : lossAvg < 1 ? 'var(--status-success)' : lossAvg < 5 ? 'var(--status-warning)' : 'var(--status-error)' }}>
                 {lossAvg < 0 ? '—' : lossAvg.toFixed(1)}
                 <small>%</small>
               </strong>
@@ -2332,7 +2357,9 @@ function ProbeLicenseNameplate({ name, displayName }: { name?: string; displayNa
     const shine = shineRef.current
     if (!plate || !text || !stars || !shine) return
 
-    const palette = ['#f2d28b', '#d8b46a', '#e0b96e', '#f5c542', '#f3ecdc']
+    const palette = document.documentElement.classList.contains('platinum')
+      ? ['#8a6210', '#a87c22', '#c9962b', '#d7a63d', '#6f4e0c']
+      : ['#f2d28b', '#d8b46a', '#e0b96e', '#f5c542', '#f3ecdc']
     const random = (min: number, max: number) => min + Math.random() * (max - min)
     const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
     const easeOutBack = (value: number) => {
@@ -2486,11 +2513,12 @@ export function App() {
     window.scrollTo(0, detailScrollRef.current)
   }, [])
   const isDark = darkMode === 'dark' || (darkMode === null && document.documentElement.classList.contains('dark'))
-  // 主控下发 Lumina-Gold 时 darkMode state 为 null，但页面已挂 gold——用 classList 兜底识别，否则三态循环从错误位置起步
+  // 主控下发 Lumina-Gold / Lumina-Platinum 时 darkMode state 为 null，但页面已挂 gold/platinum——用 classList 兜底识别，否则循环从错误位置起步
   const isGold = darkMode === 'gold' || (darkMode === null && document.documentElement.classList.contains('gold'))
+  const isPlatinum = darkMode === 'platinum' || (darkMode === null && document.documentElement.classList.contains('platinum'))
   const toggleDark = () => {
-    // 三态循环: 浅色 → 暗色 → 黑金(lumina 专属) → 浅色
-    const next = isGold ? 'light' : isDark ? 'gold' : 'dark'
+    // 四态循环: 浅色 → 暗色 → 黑金 → 白金 → 浅色
+    const next = isPlatinum ? 'light' : isGold ? 'platinum' : isDark ? 'gold' : 'dark'
     setDarkOverride(next)
     setDarkMode(next)
   }
@@ -2575,8 +2603,8 @@ export function App() {
           <button aria-label="列表视图" title="列表视图" className={view === 'list' ? 'active' : ''} onClick={() => setMode('list')}>
             <List size={18} />
           </button>
-          <button aria-label="切换配色" title={isGold ? '切换浅色模式' : isDark ? '切换黑金配色' : '切换暗色模式'} onClick={toggleDark}>
-            {isGold ? <Gem size={18} /> : isDark ? <Sun size={18} /> : <Moon size={18} />}
+          <button aria-label="切换配色" title={isPlatinum ? '切换浅色模式' : isGold ? '切换白金配色' : isDark ? '切换黑金配色' : '切换暗色模式'} onClick={toggleDark}>
+            {isPlatinum ? <Crown size={18} /> : isGold ? <Gem size={18} /> : isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <ThemeSelect value={theme} onChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
         </nav>
