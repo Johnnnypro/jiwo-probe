@@ -168,8 +168,11 @@ export function applyAppearance(input?: ProbeAppearance) {
     } else if (darkOverride === 'light') {
       dark = false
     } else {
-      dark = appearance.color_mode === 'dark' ||
-        (appearance.color_mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+      // 主控只写 premium 无后缀 → auto 模式: 北京时间 6:00-18:00 白金, 夜间黑金
+      // (不跟随主控 color_mode 字段; 用户手动三态 premium-probe-color-mode 已在前置分支处理)
+      const hour = (new Date().getUTCHours() + 8) % 24
+      root.classList.toggle('platinum', hour >= 6 && hour < 18)
+      dark = false
     }
   } else if (darkOverride === 'gold' || (parsed.gold && !themeOverride && !darkOverride)) {
     // 黑金配色（lumina 第三配色）: 不挂 dark, 挂 gold。
@@ -187,13 +190,21 @@ export function applyAppearance(input?: ProbeAppearance) {
   } else if (darkOverride === 'light') {
     dark = false
   } else {
-    dark = appearance.color_mode === 'dark' ||
-      (appearance.color_mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+    // 其余主题(经典内置 + glassmorphism): 带明暗后缀(glassmorphism-light/dark)固定对应模式;
+    // 无后缀(不写 light/dark) → auto 模式: 北京时间 6:00-18:00 浅色, 其余深色。
+    // 不跟随主控 color_mode 字段(主控总是携带该字段, 若采信则 auto 永远失效)。
+    if (parsed.light !== undefined) {
+      dark = !parsed.light
+    } else {
+      const hour = (new Date().getUTCHours() + 8) % 24
+      dark = !(hour >= 6 && hour < 18)
+    }
   }
   if (dark) root.classList.add('dark')
-  // Glassmorphism 明暗下发: 写 master 缓存, GmApp 初始化时读取(用户手动切换优先)
-  if (parsed.light !== undefined) {
-    localStorage.setItem('gm-color-mode-master', parsed.light ? 'light' : 'dark')
+  // Glassmorphism 明暗下发: 写 master 缓存, GmApp 初始化/轮询时读取(用户手动切换优先)
+  // 无后缀 glassmorphism = auto 模式(北京时间白天浅色/夜间深色); light/dark 后缀固定对应模式
+  if (theme === 'glassmorphism') {
+    localStorage.setItem('gm-color-mode-master', parsed.light === undefined ? 'auto' : parsed.light ? 'light' : 'dark')
   }
   root.dataset.themeReady = 'true'
   if (input) localStorage.setItem(APPEARANCE_CACHE, JSON.stringify(input))

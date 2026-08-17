@@ -1,11 +1,18 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Crown, Database, Gauge, Gem, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Crown, Database, Gauge, Gem, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, SunMoon, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
 import { EnrichedServer, getActiveTheme, getDarkOverride, getThemeOverride, setDarkOverride, setTheme, useProbe } from './use-probe'
+import {
+  dailyTrafficRows,
+  hasTrafficPeriod,
+  trafficFormulaLabel,
+  trafficRuleLabel,
+  type TrafficRange,
+} from './traffic-display'
 import { Twemoji } from './Twemoji'
 import { ServerDetail } from './ServerDetail'
 import { computeRemainingValue, formatMoney } from './value'
@@ -738,7 +745,7 @@ const TRAFFIC_LINES = [
   { key: 'downlink', label: '下行流量', stroke: '#22c55e' },
 ] as const
 
-export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily: ProbeServer['daily_traffic']; containerClass?: string }) {
+export function TrafficChart({ daily, containerClass = 'detail-chart', showRange = true }: { daily: ProbeServer['daily_traffic']; containerClass?: string; showRange?: boolean }) {
   const rows = daily || []
   const chartRef = useRef<HTMLDivElement>(null)
   const [trafficRange, setTrafficRange] = useState<'all' | '7d' | '30d'>('7d')
@@ -747,10 +754,11 @@ export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const shown = useMemo(() => {
     if (!rows.length) return []
+    if (!showRange) return rows // 外部已按周期/最近7日过滤(弹窗/drawer 场景)
     if (trafficRange === 'all') return rows
     const days = trafficRange === '7d' ? 7 : 30
     return rows.slice(-days)
-  }, [rows, trafficRange])
+  }, [rows, trafficRange, showRange])
   const fitZoom = () => {
     const el = chartRef.current
     if (!el || !shown.length) return
@@ -780,15 +788,19 @@ export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily
   return (
     <>
       <div className="ranges">
-        <button type="button" className={trafficRange === 'all' ? 'active' : ''} onClick={() => setTrafficRange('all')}>
-          全部
-        </button>
-        <button type="button" className={trafficRange === '7d' ? 'active' : ''} onClick={() => setTrafficRange('7d')}>
-          7日
-        </button>
-        <button type="button" className={trafficRange === '30d' ? 'active' : ''} onClick={() => setTrafficRange('30d')}>
-          30日
-        </button>
+        {showRange && (
+          <>
+            <button type="button" className={trafficRange === 'all' ? 'active' : ''} onClick={() => setTrafficRange('all')}>
+              全部
+            </button>
+            <button type="button" className={trafficRange === '7d' ? 'active' : ''} onClick={() => setTrafficRange('7d')}>
+              7日
+            </button>
+            <button type="button" className={trafficRange === '30d' ? 'active' : ''} onClick={() => setTrafficRange('30d')}>
+              30日
+            </button>
+          </>
+        )}
         <span className="ranges-sep" />
         <button
           type="button"
@@ -861,16 +873,52 @@ export function TrafficChart({ daily, containerClass = 'detail-chart' }: { daily
 }
 
 export function TrafficDialog({ server, close }: { server: ProbeServer; close: () => void }) {
+  const hasPeriod = hasTrafficPeriod(server)
+  const [range, setRange] = useState<TrafficRange>(() => (hasPeriod ? 'period' : 'recent7'))
+  const rows = dailyTrafficRows(server, range)
+  const total = rows.reduce((sum, row) => sum + (row.total || row.uplink + row.downlink), 0)
+  const formula = trafficFormulaLabel(server)
   return createPortal(
-    <div className="modal-backdrop" role="presentation" onMouseDown={close}>
-      <section className="modal" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+    <div className='modal-backdrop' role='presentation' onMouseDown={close}>
+      <section className='modal' onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
         <header>
-          <h2>{server.name} · 日流量趋势</h2>
-          <button aria-label="关闭" onClick={close}>
+          <h2>{server.name} · 原始上下行日流量趋势</h2>
+          <button type='button' aria-label='关闭' onClick={close}>
             ×
           </button>
         </header>
-        <TrafficChart daily={server.daily_traffic || []} containerClass="chart" />
+        <div className='traffic-dialog-toolbar'>
+          <div className='traffic-range' role='group' aria-label='趋势范围'>
+            {hasPeriod && (
+              <button
+                type='button'
+                className={range === 'period' ? 'active' : ''}
+                onClick={() => setRange('period')}
+              >
+                当前周期
+              </button>
+            )}
+            <button
+              type='button'
+              className={range === 'recent7' ? 'active' : ''}
+              onClick={() => setRange('recent7')}
+            >
+              最近 7 日
+            </button>
+          </div>
+          <strong>
+            {range === 'period' ? '当前周期' : '最近 7 日'}原始合计：{bytes(total, false)}
+          </strong>
+          <small>
+            趋势展示原始上、下行，不应用计费方向或对账调整；卡片按{trafficRuleLabel(server)}计费
+            {formula ? `（${formula}）` : ''}。
+          </small>
+        </div>
+        {rows.length === 0 ? (
+          <div className='empty traffic-empty'>暂无每日流量趋势数据</div>
+        ) : (
+          <TrafficChart daily={rows} containerClass='chart' showRange={false} />
+        )}
       </section>
     </div>,
     document.body,
@@ -2546,11 +2594,22 @@ export function App() {
   // 主控下发 Lumina-Gold / Lumina-Platinum 时 darkMode state 为 null，但页面已挂 gold/platinum——用 classList 兜底识别，否则循环从错误位置起步
   const isGold = darkMode === 'gold' || (darkMode === null && document.documentElement.classList.contains('gold'))
   const isPlatinum = darkMode === 'platinum' || (darkMode === null && document.documentElement.classList.contains('platinum'))
+  // 配色按钮: Lumina 保持四态(浅/暗/黑金/白金); 其余主题三态 auto → 浅色 → 暗色
+  const isLuminaTheme = activeTheme === 'lumina'
+  const colorMode: 'auto' | 'light' | 'dark' =
+    darkMode === 'dark' || darkMode === 'light' ? darkMode : 'auto'
   const toggleDark = () => {
-    // 四态循环: 浅色 → 暗色 → 黑金 → 白金 → 浅色
-    const next = isPlatinum ? 'light' : isGold ? 'platinum' : isDark ? 'gold' : 'dark'
-    setDarkOverride(next)
-    setDarkMode(next)
+    if (isLuminaTheme) {
+      // 四态循环: 浅色 → 暗色 → 黑金 → 白金 → 浅色
+      const next = isPlatinum ? 'light' : isGold ? 'platinum' : isDark ? 'gold' : 'dark'
+      setDarkOverride(next)
+      setDarkMode(next)
+    } else {
+      // 三态循环: auto → 浅色(太阳) → 暗色(月亮) → auto(去掉 4 态时第二行注释)
+      const next = colorMode === 'auto' ? 'light' : colorMode === 'light' ? 'dark' : null
+      setDarkOverride(next)
+      setDarkMode(next)
+    }
   }
   const setMode = (next: 'card' | 'list' | 'mini') => {
     setView(next)
@@ -2633,8 +2692,16 @@ export function App() {
           <button aria-label="列表视图" title="列表视图" className={view === 'list' ? 'active' : ''} onClick={() => setMode('list')}>
             <List size={18} />
           </button>
-          <button aria-label="切换配色" title={isPlatinum ? '切换浅色模式' : isGold ? '切换白金配色' : isDark ? '切换黑金配色' : '切换暗色模式'} onClick={toggleDark}>
-            {isPlatinum ? <Crown size={18} /> : isGold ? <Gem size={18} /> : isDark ? <Sun size={18} /> : <Moon size={18} />}
+          <button aria-label="切换配色" title={isLuminaTheme ? (isPlatinum ? '切换浅色模式' : isGold ? '切换白金配色' : isDark ? '切换黑金配色' : '切换暗色模式') : colorMode === 'auto' ? '自动模式（跟随主控/时间）· 点击切换' : colorMode === 'light' ? '白色模式 · 点击切换' : '黑色模式 · 点击切换'} onClick={toggleDark}>
+            {isLuminaTheme ? (
+              isPlatinum ? <Crown size={18} /> : isGold ? <Gem size={18} /> : isDark ? <Sun size={18} /> : <Moon size={18} />
+            ) : colorMode === 'auto' ? (
+              <SunMoon size={18} />
+            ) : colorMode === 'light' ? (
+              <Sun size={18} />
+            ) : (
+              <Moon size={18} />
+            )}
           </button>
           <ThemeSelect value={theme} onChange={(name) => { setTheme(name); setThemeState(name); setActiveTheme(name ?? getActiveTheme()) }} />
         </nav>

@@ -1087,6 +1087,52 @@ button {
   color: var(--muted);
   text-align: center;
 }
+/* 原始上下行日流量趋势弹窗工具栏(照上游 6221dd1 bug fix) */
+.traffic-dialog-toolbar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 14px 0 8px;
+}
+.traffic-dialog-toolbar > strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+}
+.traffic-dialog-toolbar > small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.traffic-range {
+  display: inline-flex;
+  overflow: hidden;
+  width: max-content;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.traffic-range button {
+  padding: 5px 10px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.traffic-range button + button {
+  border-left: 1px solid var(--border);
+}
+.traffic-range button.active {
+  color: #fff;
+  background: var(--primary);
+}
+.traffic-empty {
+  height: 100%;
+  padding: 0;
+}
 footer {
   padding: 20px;
   color: var(--muted);
@@ -1222,7 +1268,10 @@ footer a:hover {
 }
 .modal {
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 12px);
+  max-height: calc(100dvh - 12px);
   width: 85vw;
   min-width: 0;
   max-width: 100%;
@@ -1287,6 +1336,28 @@ footer a:hover {
 .chart-scroll-inner { height: 100%; }
 @media (max-width: 640px) {
   .modal { width: 90vw; padding: 18px 14px; }
+}
+/* 手机端: 趋势弹窗撑满屏幕(减少上下滑动, 三线按钮直接可见) */
+@media (max-width: 640px) {
+  .modal-backdrop { padding: 6px; }
+  .modal {
+    width: calc(100vw - 12px);
+    max-height: calc(100vh - 12px);
+    max-height: calc(100dvh - 12px);
+    padding: 14px 12px;
+  }
+  .modal .chart { height: min(38vh, 250px); height: min(38dvh, 250px); }
+  .traffic-dialog-toolbar { margin: 10px 0 4px; gap: 6px 10px; }
+  .traffic-line-toggle { margin: 6px 0 0; }
+  /* 手机端: 图表缩放按钮(缩小/适应/放大)加大, 便于点击 */
+  .modal .ranges { gap: 8px; margin: 10px 0 6px; }
+  .modal .ranges .zoom-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: var(--radius);
+  }
+  .modal .ranges .zoom-btn svg { width: 17px; height: 17px; }
 }
 .ranges {
   display: flex;
@@ -1363,7 +1434,8 @@ footer a:hover {
 }
 .chart {
   position: relative;
-  height: 300px;
+  height: min(42vh, 300px);
+  height: min(42dvh, 300px);
 }
 .loading,
 .loading-overlay,
