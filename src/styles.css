@@ -3374,15 +3374,44 @@ footer a:hover {
     transparent 60%
   );
 }
-/* 白金: 二级详情页进度条 .meter i(原 var(--primary) 纯色)统一黑金渐变 */
+/* 白金: 二级详情页进度条 .meter i(原 var(--primary) 纯色)统一黑金渐变 + 主控白金金辉光 */
 :root.theme-lumina.platinum .meter i,
-:root.theme-premium.platinum .meter i,
+:root.theme-premium.platinum .meter i {
+  background: linear-gradient(90deg, #8f651d, #e5c367);
+  box-shadow: 0 0 9px -2px #a87c22;
+}
 :root.theme-lumina.gold .meter i {
   background: linear-gradient(90deg, #8f651d, #e5c367);
 }
+/* 白金: 进度条统一主控白金风格(照 mmwx.289599.top theme-premium light 实测:
+   4px 细条 + 金2色渐变填充 + 金辉光 0 0 9px -2px #a87c22 + 胶囊圆角 + 暗金轨道浅底可见) */
+:root.theme-lumina.platinum .lumina-meter {
+  height: 4px;
+  background: rgba(168, 124, 34, 0.1);
+}
+:root.theme-lumina.platinum .lumina-meter i {
+  box-shadow: 0 0 9px -2px #a87c22;
+}
 /* 白金: 顶部网络状况 总下行/总上行 实时进度条 统一黑金渐变(替代默认绿/橙, 2026-08-15) */
+:root.theme-lumina.platinum .speed-summary .speed-progress {
+  height: 4px;
+  background: rgba(168, 124, 34, 0.1);
+}
 :root.theme-lumina.platinum .speed-summary .speed-progress i,
 :root.theme-lumina.platinum .speed-summary.up .speed-progress i {
+  background: linear-gradient(90deg, #8f651d, #e5c367);
+  box-shadow: 0 0 9px -2px #a87c22;
+}
+/* 白金: 剩余流量分段条 形态对齐主控(细胶囊; 填充保留黑金4色渐变不动) */
+:root.theme-lumina.platinum .lumina-quota-track {
+  height: 4px;
+}
+:root.theme-lumina.platinum .lumina-quota-track > span {
+  border-radius: 999px;
+}
+/* 黑金: 顶部网络状况 总下行/总上行 实时进度条 统一黑金渐变(同白金, 2026-08-15) */
+:root.theme-lumina.gold .speed-summary .speed-progress i,
+:root.theme-lumina.gold .speed-summary.up .speed-progress i {
   background: linear-gradient(90deg, #8f651d, #e5c367);
 }
 /* 白金: 全部按钮金色系(用户要求, 参照黑金金调 — 浅金底+深棕字, active 金渐变白字) */
@@ -3402,12 +3431,15 @@ footer a:hover {
   background: linear-gradient(90deg, #8f651d, #e5c367);
   border-color: #a87c22;
 }
-/* 白金: 许可证徽章浅色化(替代默认砖橙/棕) */
+/* 白金: 许可证铭牌照主控白金原色(深棕金渐变+浅金字, 替代浅色化 — 主控 theme-premium light 实测, 2026-08-17) */
 :root.theme-lumina.platinum .probe-license-nameplate {
-  border-color: rgba(168, 124, 34, 0.45);
-  background: linear-gradient(135deg, #fffdf8 0%, #f7f4ec 48%, #eee9de 100%);
-  box-shadow: 2px 2px 0 rgba(70, 48, 10, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  color: #6f4e0c;
+  border-color: #b47a1c;
+  background: linear-gradient(100deg, #4a300d, #d7a63d 48%, #6b4712);
+  box-shadow: 0 0 16px -7px #d7a63d;
+  color: #fff4cb;
+}
+:root.theme-lumina.platinum .probe-license-nameplate .probe-license-text {
+  text-shadow: 0 1px #4b3009;
 }
 /* 白金: 页面角落金色光斑(浅底版) */
 :root.theme-lumina.platinum .app-shell {
@@ -3459,14 +3491,15 @@ footer a:hover {
     linear-gradient(140deg, rgba(168, 124, 34, 0.05), transparent 48%),
     color-mix(in srgb, var(--status-error) 5%, var(--surface));
 }
+/* 白金: 卡片 hover 背景不变(用户要求取消变暗 — 保持默认卡背景, 仅阴影增强, 2026-08-17) */
 :root.theme-lumina.platinum .lumina-card:hover,
 :root.theme-lumina.platinum .summary-card:hover,
 :root.theme-lumina.platinum .probe-toolbar:hover,
 :root.theme-lumina.platinum .globe-card:hover,
 :root.theme-lumina.platinum .leaderboard-card:hover {
   background:
-    linear-gradient(140deg, rgba(168, 124, 34, 0.085), transparent 48%),
-    color-mix(in srgb, var(--hover-bg) 38%, var(--surface));
+    linear-gradient(140deg, rgba(168, 124, 34, 0.06), transparent 48%),
+    var(--surface);
   box-shadow: 0 20px 44px -28px rgba(120, 86, 20, 0.42);
 }
 :root.theme-lumina .app-shell {

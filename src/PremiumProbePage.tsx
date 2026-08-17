@@ -10,11 +10,13 @@ import {
   Globe2,
   Gauge,
   Layers,
+  Moon,
   Palette,
   Radio,
   Server,
   ShieldCheck,
   Sparkles,
+  SunMoon,
   Target,
   X,
   XCircle,
@@ -25,7 +27,7 @@ import type {
   ProbePayload,
 } from './types'
 import { Twemoji } from './Twemoji'
-import { setDarkOverride } from './use-probe'
+import { parseThemeName } from './use-probe'
 import { EXTRA_LICENSE_BADGES, HEADER_LICENSE_BADGES } from './license-badges'
 import { FLAG_OPTIONS } from './country-flag'
 import { displayServerName } from './server-name'
@@ -38,7 +40,7 @@ function cn(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ')
 }
 
-const LICENSE_CYCLE_MS = 5500
+const LICENSE_CYCLE_MS = 5596 // 主控 license-nameplate 实测周期(2026-08-17)
 const LICENSE_REVEAL_END = 0.36
 const licenseStarPalette = ['#8c5d17', '#d7a63d', '#f2d78a', '#fff1b9', '#c78e24']
 const licenseClamp = (value: number, min: number, max: number) =>
@@ -2236,14 +2238,58 @@ export function PremiumProbePage({
     if (typeof window === 'undefined') return true
     return localStorage.getItem('premium-probe-watermark') !== '0'
   })
-  // 白金配色开关（黑金 ⇄ 白金，复用全局 darkOverride=platinum）
-  const [platinum, setPlatinum] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return document.documentElement.classList.contains('platinum')
+  // 配色模式: auto(北京时间白天白金/晚上黑金) ⇄ 白金 ⇄ 黑金 三态循环
+  // 直接操作 html class(不动全局 DARK_OVERRIDE, 避免污染其他主题), localStorage 记忆
+  const [colorMode, setColorMode] = useState<'auto' | 'platinum' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'auto'
+    const saved = localStorage.getItem('premium-probe-color-mode')
+    return saved === 'platinum' || saved === 'dark' ? saved : 'auto'
   })
-  const togglePlatinum = () => {
-    setDarkOverride(platinum ? null : 'platinum')
-    setPlatinum(!platinum)
+  // 用户手动点过按钮后, 主控下发不再驱动配色
+  const manualColorRef = useRef(false)
+  // 主控下发驱动: 纯 premium → auto; premiumplatinum/premiumlight → 白金。
+  // 仅当用户从未在探针上选过配色(localStorage 无 premium-probe-color-mode)时才驱动;
+  // 用户点过(含 auto)即持久记忆, 刷新后主控黑金/白金也不覆盖(2026-08-17 用户规则)
+  useEffect(() => {
+    if (manualColorRef.current) return
+    if (localStorage.getItem('premium-probe-color-mode')) return
+    const themeRaw = data?.appearance?.theme
+    if (!themeRaw) return
+    const parsed = parseThemeName(themeRaw)
+    if (parsed.platinum) {
+      if (colorMode !== 'platinum') setColorMode('platinum')
+    } else if (colorMode !== 'auto') {
+      setColorMode('auto')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.appearance?.theme])
+  const [autoPlatinum, setAutoPlatinum] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    const now = new Date()
+    const hour = (now.getUTCHours() + 8) % 24 // 北京时间(UTC+8)
+    return hour >= 6 && hour < 18
+  })
+  useEffect(() => {
+    localStorage.setItem('premium-probe-color-mode', colorMode)
+    const apply = () => {
+      if (colorMode === 'auto') {
+        const now = new Date()
+        const hour = (now.getUTCHours() + 8) % 24
+        const isDay = hour >= 6 && hour < 18
+        document.documentElement.classList.toggle('platinum', isDay)
+        setAutoPlatinum(isDay)
+      } else {
+        document.documentElement.classList.toggle('platinum', colorMode === 'platinum')
+      }
+    }
+    apply()
+    if (colorMode !== 'auto') return
+    const timer = window.setInterval(apply, 60_000) // 跨 6/18 点自动切换
+    return () => window.clearInterval(timer)
+  }, [colorMode])
+  const cycleColorMode = () => {
+    manualColorRef.current = true
+    setColorMode((prev) => (prev === 'auto' ? 'platinum' : prev === 'platinum' ? 'dark' : 'auto'))
   }
   // 底部许可证动画开关（默认开，localStorage 记忆）
   const [licenseAnim, setLicenseAnim] = useState<boolean>(() => {
@@ -2428,13 +2474,27 @@ export function PremiumProbePage({
           </button>
           <button
             type='button'
-            className={`premium-probe-login premium-probe-platinum-toggle${platinum ? ' is-on' : ''}`}
-            aria-label={platinum ? '切换黑金配色' : '切换白金配色'}
-            aria-pressed={platinum}
-            title={platinum ? '切换到黑金配色' : '切换到白金配色（浅色版）'}
-            onClick={togglePlatinum}
+            className={`premium-probe-login premium-probe-platinum-toggle${colorMode === 'dark' || (colorMode === 'auto' && !autoPlatinum) ? '' : ' is-on'}`}
+            aria-label={
+              colorMode === 'auto'
+                ? autoPlatinum
+                  ? '自动配色·白天白金(点击切到白金)'
+                  : '自动配色·晚上黑金(点击切到白金)'
+                : colorMode === 'platinum'
+                  ? '白金配色(点击切到黑金)'
+                  : '黑金配色(点击切到自动)'
+            }
+            aria-pressed={colorMode !== 'dark' && (colorMode !== 'auto' || autoPlatinum)}
+            title={
+              colorMode === 'auto'
+                ? `自动配色: 白天白金 / 晚上黑金(当前${autoPlatinum ? '白金' : '黑金'})`
+                : colorMode === 'platinum'
+                  ? '白金配色 → 点击切到黑金配色'
+                  : '黑金配色 → 点击切到自动配色(白天白金/晚上黑金)'
+            }
+            onClick={cycleColorMode}
           >
-            <Crown />
+            {colorMode === 'auto' ? <SunMoon /> : colorMode === 'platinum' ? <Crown /> : <Moon />}
           </button>
           <PremiumThemeSelect onThemeChange={onThemeChange} />
         </nav>
