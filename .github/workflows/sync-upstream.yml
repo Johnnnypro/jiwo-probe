@@ -44,7 +44,8 @@ jobs:
 
           git diff --binary HEAD "upstream/${UPSTREAM_BRANCH}" -- . \
             ':(exclude).github/workflows/**' \
-            ':(exclude).upstream-sha' | git apply --index
+            ':(exclude).upstream-sha' \
+            ':(exclude)src/license-badges.ts' | git apply --index
 
           printf '%s\n' "${UPSTREAM_SHA}" > .upstream-sha
           git add .upstream-sha
