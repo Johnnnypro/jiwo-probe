@@ -1741,7 +1741,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
         <header className="lumina-card-header">
           <div className="lumina-title-wrap">
             <span className={server.online ? 'status online' : 'status'} />
-            <h2 className="lumina-title">
+            <h2 className="lumina-title" title={name}>
               <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
             </h2>
             {regionLabel(server) && <span className="lumina-subtitle">{regionLabel(server)}</span>}

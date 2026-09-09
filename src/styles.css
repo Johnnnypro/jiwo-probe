@@ -3930,14 +3930,20 @@ footer a:hover {
 }
 .lumina-title-wrap {
   display: flex;
+  flex: 1 1 0;
   align-items: center;
   gap: 7px;
   min-width: 0;
+  overflow: hidden;
+}
+.lumina-title-wrap > .status {
+  flex: 0 0 auto;
 }
 .lumina-title {
   margin: 0;
   min-width: 0;
-  flex: 1 0 auto;
+  max-width: 100%;
+  flex: 1 1 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

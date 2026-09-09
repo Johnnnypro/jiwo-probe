@@ -242,7 +242,7 @@ function GmNodeCard({ server, index }: { server: EnrichedServer; index: number }
               <span className={`status${server.online ? ' online' : ''}`} />
               {server.online && <span className="gm-status-ping" />}
             </span>
-            <h2 className="gm-node-title">{name}</h2>
+            <h2 className="gm-node-title" title={name}>{name}</h2>
           </div>
           <div className="gm-node-icons">
             <span className="gm-node-os" title={systemTitle(server)} onClick={(event) => event.stopPropagation()}>

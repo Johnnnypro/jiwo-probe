@@ -493,6 +493,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
 }
 .gm-status-wrap {
   position: relative;
@@ -520,8 +521,9 @@
   80%, 100% { transform: scale(2.4); opacity: 0; }
 }
 .gm-node-title {
-  flex: 1 0 auto;
+  flex: 1 1 0;
   min-width: 0;
+  max-width: 100%;
   margin: 0;
   font-size: 14px;
   font-weight: 700;
