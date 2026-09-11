@@ -312,6 +312,45 @@
   height: 0.95rem;
 }
 
+/* Passkey 与 Premium 顶栏现有图标按钮保持一致。 */
+.premium-probe-theme-switch,
+.premium-probe-theme-switch .probe-passkey-login {
+  display: inline-flex;
+  align-items: center;
+}
+.premium-probe-theme-switch .probe-passkey-login button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--pp-gold-bright);
+  border: 1px solid rgba(216, 180, 106, 0.3);
+  border-radius: 0.48rem;
+  background: rgba(216, 180, 106, 0.04);
+  cursor: pointer;
+}
+.premium-probe-theme-switch .probe-passkey-login button:hover {
+  color: var(--pp-gold-bright);
+  border-color: rgba(242, 210, 139, 0.62);
+  background: rgba(216, 180, 106, 0.1);
+}
+.premium-probe-theme-switch .probe-passkey-login button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+:root.theme-premium.platinum .premium-probe-theme-switch .probe-passkey-login button {
+  color: #8a6210;
+  border-color: rgba(168, 124, 34, 0.34);
+  background: rgba(168, 124, 34, 0.06);
+}
+:root.theme-premium.platinum .premium-probe-theme-switch .probe-passkey-login button:hover {
+  color: #6f4e0c;
+  border-color: rgba(168, 124, 34, 0.58);
+  background: rgba(168, 124, 34, 0.12);
+}
+
 /* 顶栏水印/配色三态开关: 加大到 36px 高 + 18px 图标(2026-08-17) */
 .premium-probe-page .premium-probe-watermark-toggle,
 .premium-probe-page .premium-probe-platinum-toggle {
@@ -3274,11 +3313,28 @@
 
 @media (max-width: 760px) {
   .premium-probe-topbar {
-    align-items: flex-start;
-    padding: 0.7rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    min-height: 0;
+    padding: 0.65rem 1rem;
+  }
+  .premium-probe-topbar > div {
+    min-width: 0;
+    gap: 0.5rem;
+  }
+  .premium-probe-topbar img {
+    height: 40px;
+    max-width: 96px;
+  }
+  .premium-probe-topbar h1 {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.2rem;
   }
   .premium-probe-topbar nav {
-    gap: 0.35rem;
+    justify-content: flex-end;
+    gap: 0.4rem;
   }
   .premium-probe-live,
   .premium-probe-license {
@@ -4834,4 +4890,68 @@
 }
 :root.theme-premium.platinum .premium-probe-forward-chart-head .d {
   color: #241e14;
+}
+
+/* 上游 2026-09-11 白金三视图对比度审计补丁，按本地 platinum 类名移植。 */
+:root.theme-premium.platinum .premium-probe-hotspot-list strong,
+:root.theme-premium.platinum .premium-probe-network-history strong,
+:root.theme-premium.platinum .premium-probe-command-kpis strong,
+:root.theme-premium.platinum .premium-probe-billing-kpis strong,
+:root.theme-premium.platinum .premium-probe-billing-rank strong,
+:root.theme-premium.platinum .premium-probe-quota-rank strong,
+:root.theme-premium.platinum .premium-probe-renewal-totals strong,
+:root.theme-premium.platinum .premium-probe-smart-summary > svg {
+  color: #8a5f12;
+}
+:root.theme-premium.platinum .premium-probe-insight-card > header h3,
+:root.theme-premium.platinum .premium-probe-drawer > header h2,
+:root.theme-premium.platinum .premium-probe-server-footer strong,
+:root.theme-premium.platinum .premium-probe-heatmap b,
+:root.theme-premium.platinum .premium-probe-target-toolbar button:hover {
+  color: #241e14;
+}
+:root.theme-premium.platinum .premium-probe-heatmap span,
+:root.theme-premium.platinum .premium-probe-command-nodes span,
+:root.theme-premium.platinum .premium-probe-network-history time,
+:root.theme-premium.platinum .premium-probe-server-footer small,
+:root.theme-premium.platinum .premium-probe-heatmap .is-head b,
+:root.theme-premium.platinum .premium-probe-heatmap .is-head span {
+  color: #6b6152;
+}
+:root.theme-premium.platinum .premium-probe-network-row > strong[data-level='medium'] {
+  color: #a2701a;
+}
+:root.theme-premium.platinum .premium-probe-network-view-heading select {
+  color: #2c251a;
+  color-scheme: light;
+}
+:root.theme-premium.platinum .premium-probe-server-name,
+:root.theme-premium.platinum .premium-probe-billing-rank > div:not(.is-head) > span,
+:root.theme-premium.platinum .premium-probe-renewal-track span,
+:root.theme-premium.platinum .premium-probe-hotspot-list > div > span {
+  color: #2c251a;
+}
+:root.theme-premium.platinum .premium-probe-billing-rank > .is-head span,
+:root.theme-premium.platinum .premium-probe-renewal-track time {
+  color: #6b6152;
+}
+:root.theme-premium.platinum .premium-probe-kpis strong,
+:root.theme-premium.platinum .premium-probe-network-kpis strong,
+:root.theme-premium.platinum .premium-probe-renewal-track small,
+:root.theme-premium.platinum .premium-probe-renewal-track strong {
+  color: #8a5f12;
+}
+:root.theme-premium.platinum .premium-probe-kpis button:nth-child(2) strong {
+  color: #1a7f37;
+}
+:root.theme-premium.platinum .premium-probe-kpis button:nth-child(3) strong,
+:root.theme-premium.platinum .premium-probe-network-row > strong[data-level='poor'],
+:root.theme-premium.platinum .premium-probe-renewal-track .is-due strong,
+:root.theme-premium.platinum .premium-probe-renewal-track .is-expired strong,
+:root.theme-premium.platinum .premium-probe-health-score[data-tone='warning'],
+:root.theme-premium.platinum .premium-probe-drawer-health > strong[data-tone='warning'] {
+  color: #c0342c;
+}
+:root.theme-premium.platinum .premium-probe-heatmap b {
+  border-color: rgba(168, 124, 34, 0.22);
 }

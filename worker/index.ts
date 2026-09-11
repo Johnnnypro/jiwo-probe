@@ -137,6 +137,12 @@ const routes: Record<string, string> = {
   '/api/stream': '/api/public/probe-ws',
 }
 
+// Passkey 是探针唯一允许向主控 POST 的公开鉴权端点；不携带只读 PROBE_TOKEN。
+const authRoutes = new Set([
+  '/api/login/passkey/begin',
+  '/api/login/passkey/finish',
+])
+
 function originURL(env: Env, pathname: string, search = ''): URL {
   const origin = new URL(env.MMWX_ORIGIN)
   if (origin.protocol !== 'https:' && origin.hostname !== '127.0.0.1' && origin.hostname !== 'localhost') {
@@ -160,6 +166,45 @@ function upstreamHeaders(request: Request, env: Env): Headers {
   headers.set('X-Forwarded-Host', new URL(request.url).host)
   headers.set('X-MMwx-Probe-Token', env.PROBE_TOKEN)
   return headers
+}
+
+async function proxyAuth(request: Request, incoming: URL, env: Env): Promise<Response> {
+  if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 })
+
+  const target = originURL(env, incoming.pathname, incoming.search)
+  const headers = new Headers(request.headers)
+  headers.delete('cookie')
+  headers.delete('authorization')
+  headers.delete('X-MMwx-Probe-Token')
+  headers.set('X-Forwarded-Host', incoming.host)
+  headers.set('X-Forwarded-Proto', 'https')
+
+  const upstream = await fetch(new Request(target, {
+    method: 'POST',
+    headers,
+    body: request.body,
+  }))
+  const responseHeaders = new Headers(upstream.headers)
+  responseHeaders.set('Cache-Control', 'no-store')
+  responseHeaders.set('X-Content-Type-Options', 'nosniff')
+  responseHeaders.delete('set-cookie')
+
+  // 仅在 Passkey 校验成功后返回主控地址，供前端把 token 通过 URL fragment 带回主控。
+  if (incoming.pathname.endsWith('/finish') && upstream.ok) {
+    try {
+      const payload = (await upstream.json()) as Record<string, unknown>
+      payload.master_origin = env.MMWX_ORIGIN
+      return Response.json(payload, { status: upstream.status, headers: responseHeaders })
+    } catch {
+      return new Response('Bad upstream response', { status: 502 })
+    }
+  }
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: responseHeaders,
+  })
 }
 
 function probeCacheKey(request: Request): Request | null {
@@ -557,6 +602,10 @@ export default {
         return Response.redirect(new URL('/', incoming).toString(), 302)
       }
       return Response.redirect(new URL('/login', env.MMWX_ORIGIN).toString(), 302)
+    }
+
+    if (authRoutes.has(incoming.pathname)) {
+      return proxyAuth(request, incoming, env)
     }
 
     // 运行时主题配置只包含公开的显示参数，不返回任何 Worker Secret。

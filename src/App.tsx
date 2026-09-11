@@ -14,6 +14,7 @@ import {
   type TrafficRange,
 } from './traffic-display'
 import { Twemoji } from './Twemoji'
+import { PasskeyLogin } from './PasskeyLogin'
 import { ServerDetail } from './ServerDetail'
 import { computeRemainingValue, formatMoney } from './value'
 import commonRouteAnimation from './assets/return-route/common.json'
@@ -2718,6 +2719,7 @@ export function App() {
           <h1>{title}</h1>
         </div>
         <nav>
+          <PasskeyLogin />
           <button aria-label="卡片视图" title="卡片视图" className={view === 'card' ? 'active' : ''} onClick={() => setMode('card')}>
             <LayoutGrid size={18} />
           </button>

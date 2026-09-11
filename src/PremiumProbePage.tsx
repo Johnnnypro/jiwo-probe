@@ -31,6 +31,7 @@ import type {
   ProbePayload,
 } from './types'
 import { Twemoji } from './Twemoji'
+import { PasskeyLogin } from './PasskeyLogin'
 import { parseThemeName } from './use-probe'
 import { EXTRA_LICENSE_BADGES, HEADER_LICENSE_BADGES } from './license-badges'
 import { FLAG_OPTIONS } from './country-flag'
@@ -649,14 +650,19 @@ function RenewalTimeline({
               scrollLeft: track.scrollLeft,
               moved: false,
             }
-            track.setPointerCapture(event.pointerId)
           }}
           onPointerMove={(event) => {
             const track = trackRef.current
             if (!track || !dragRef.current.active) return
             const dx = event.clientX - dragRef.current.startX
-            if (Math.abs(dx) > 4) dragRef.current.moved = true
-            track.scrollLeft = dragRef.current.scrollLeft - dx
+            // 纯点击不捕获指针，确保服务商链接收到原生 click；超过 4px 才进入拖动。
+            if (Math.abs(dx) > 4 && !dragRef.current.moved) {
+              dragRef.current.moved = true
+              track.setPointerCapture(event.pointerId)
+            }
+            if (dragRef.current.moved) {
+              track.scrollLeft = dragRef.current.scrollLeft - dx
+            }
           }}
           onPointerUp={() => {
             dragRef.current.active = false
@@ -3213,6 +3219,9 @@ export function PremiumProbePage({
         </div>
         <nav>
           <span className='premium-probe-live'>实时更新</span>
+          <div className='premium-probe-theme-switch'>
+            <PasskeyLogin />
+          </div>
           <div className='premium-probe-view-toggle'>
             <button
               type='button'

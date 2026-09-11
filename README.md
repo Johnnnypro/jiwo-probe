@@ -1,6 +1,6 @@
 # Jiwo Probe（鸡窝状态站）
 
-妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（功能基线 `d706d7e`，2026-08-22；最新转发链 WS 数据、固定切换位置、浅色修复和每日流量堆叠柱状图已按本 fork 架构移植）。
+妙妙屋 X（MiaoMiaoWuX）独立服务器探针的**非官方魔改 fork**，基于 [mmwx-probe](https://github.com/mmwx-group/mmwx-probe)（功能基线 `e6f3a11`，2026-09-11；最新 Passkey 登录、Premium 移动端顶栏、续费链接和白金对比度修复已按本 fork 架构移植）。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/chnnic/jiwo-probe)
 
@@ -27,7 +27,7 @@
   - NodeDetail 详情页、Traffic 全网流量、Billing 订阅汇总（月成本 / 年估算 / 到期提醒 / 多币种 + 汇率）、访客信息浮卡（每会话一次）
   - **10 个主题变体**：墨石深（night）/ 雾色浅（mist）/ 烬枣红（ember）/ 樱粉（sakura）/ 薰衣草（lavender）等，右上角切换
   - 懒加载分包（首屏 index 196KB 不变），访客接口走 CF 请求头（零第三方依赖）
-- **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina → ran` 循环）——保留 Komari Theme LuminaPlus 的信息布局，并移植主控白金/黑金视觉：无外框毛玻璃卡片、轻量静态阴影、无边框顶栏、未选中按钮无金框，详情页和弹窗保留 1px 结构线；健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
+- **Lumina 主题**（第 5 主题，`pixel → flat → anime → glass → lumina → ran` 循环）——保留 Komari Theme LuminaPlus 的信息布局，并移植主控白金/黑金视觉：无外框不透明卡片、关闭动态背景模糊、轻量静态阴影、无边框顶栏、未选中按钮无金框，详情页和弹窗保留 1px 结构线；健康区延迟/丢包柱条热力分段（与数值同色）、流量脉冲点击弹日流量趋势图、延迟/丢包柱条点击弹完整趋势图、延迟展示内容可选（平均或任意线路）、上下行箭头图标化（悬停 title 提示）、**三网回程勋章扁平化**（去掉系统金/银拟物动画勋章，改细边框低饱和 chip，CN2 GIA / 9929 / CMIN2 等优质线路金色点缀，详情页同步同款）
   - **四态配色循环**（Gem 图标切换：浅 → 暗 → 黑金 → 白金）——黑金为 Lumina 专属配色：深墨绿黑底 + 金色描边/光晕 + 米白文字，顶部金色光晕；白金移植自 license.miaomiaowu.net premium light（米白底 + 暗金 #a87c22）；切换记忆在浏览器（localStorage），刷新保持
   - **黑金/白金金色体系**——非语义色收敛金色：进度条/脉冲条/剩余流量条/延迟与丢包率数值与柱条/资产总揽金额（`--accent`）/许可证徽章/spark 星光统一金色；黑金/白金两态的**进度条统一使用原版 premium 黑金渐变**（深金 `#8f651d` → 亮金 `#e5c367`，含二级详情页 .meter）；进度条轨道用详情页同款 `color-mix(border 70%)` 暗轨道（全主题自适应）；状态语义色保留（绿在线/红离线/黄到期），趋势图多线区分色保留
 - **玻璃主题**（第 4 主题）——重新设计为可读性优先的现代磨砂玻璃：低噪声冷色环境光、三层玻璃透明度、顶部细高光、克制阴影，桌面/手机与详情页统一适配
@@ -138,13 +138,15 @@ PROBE_BACKGROUND_THEMES=pixel,flat,anime,glass,lumina,premium,ran,glassmorphism,
 
 `ProbeHub` 由 Cloudflare Durable Object 承载。所有访问域名和边缘节点使用同一个固定实例，默认每 3 秒向主控请求一次完整快照，再把快照广播给所有访客；最后一名访客离开 30 秒后停止采集。这样访客数增加时，不再按访客数增加主控实时数据查询。需要降低数据库压力时，将运行时变量 `PROBE_POLL_INTERVAL_SECONDS` 设置为 `5` 即可切回 5 秒。
 
-Worker 仅处理三个固定路径，不接受访客指定上游地址，因此不会形成开放代理：
+Worker 只处理固定只读路径和两条 Passkey 鉴权路径，不接受访客指定上游地址，因此不会形成开放代理：
 
 | 对外路径 | 处理方式 | 用途 |
 | --- | --- | --- |
 | `/api/probe` | ProbeHub 最新帧 + 3 秒边缘微缓存 | 服务器状态 |
 | `/api/series` | 直连 `/api/public/probe-series` | 延迟与丢包率历史 |
 | `/api/stream` | ProbeHub 共享单条上游 WebSocket | 实时 WebSocket |
+| `/api/login/passkey/begin` | 仅允许 POST，不携带 `PROBE_TOKEN` | 获取主控 Passkey 挑战 |
+| `/api/login/passkey/finish` | 仅允许 POST，不携带 `PROBE_TOKEN` | 校验断言并跳转回主控 |
 
 ProbeHub 连接或快照异常时会自动回退到原来的主控直连，不影响页面可用性。响应头 `X-Probe-Source: hub` 表示命中 Hub，`origin-fallback` 表示当次使用了回退。
 
@@ -154,6 +156,8 @@ ProbeHub 连接或快照异常时会自动回退到原来的主控直连，不�
 - Cloudflare 账户及可用的 Workers 服务
 - Node.js 22 或更高版本、npm 10 或更高版本
 - 主控具有可由 Cloudflare 访问的 HTTPS 地址
+
+如需从外置探针使用 Passkey 登录，先在主控注册 Passkey，并在主控的 `MMWX_WEBAUTHN_RELATED_ORIGINS` 中加入探针完整来源（例如 `https://tz.example.com`）。探针只提供登录入口，不提供 Passkey 注册。
 
 先进入主控的"系统设置 → 探针"，启用探针、选择展示服务器和指标，然后生成"独立探针访问密钥"。密钥明文只显示一次，请立即保存，切勿提交到 Git。
 
@@ -285,10 +289,11 @@ npm run deploy     # 构建并部署到 Cloudflare Workers
 - 3 秒采集使 PostgreSQL 压力偏高：将 Worker 运行时变量 `PROBE_POLL_INTERVAL_SECONDS` 设为 `5` 并重新部署，即可回到 5 秒采集。
 - `MMWX_ORIGIN must use HTTPS`：生产源站不是 HTTPS。本地调试仅允许 `localhost` 或 `127.0.0.1`。
 - 页面没有服务器：在主控探针设置中选择需要展示的服务器。
+- Passkey 提示“本域名未被主控承认”：把探针完整 HTTPS 来源加入主控 `MMWX_WEBAUTHN_RELATED_ORIGINS`，重启主控后再试。
 
 ## 上游同步
 
-本 fork 的功能基线已提升到上游 `d706d7e`（2026-08-22）。`d706d7e`、`31f7a4b`、`bd651cb`、`f6fc04b` 的转发链网络状况能力已按本 fork 架构移植：优先读取 WS `payload.forward`、HTTP 兜底、按服务器/转发链固定位置切换、浅色主题与布局抖动修复、按组切换的每日流量堆叠柱状图。此前 `6221dd1` 的原始上下行趋势、计费口径工具、`traffic_stats_mode` 修正、服务器旗标和动态地区图也已吸收；与本地七套主题、Ran/Premium 定制大面积冲突的结构性重构没有直接覆盖，而是逐项移植功能，避免界面回退。更早吸收：`8d82a8b` 移除登录；`ce624cf` twemoji 本地化（public/twemoji/ ~3650 个本地 SVG，零外部依赖）；`3ed41ca` Premium 黑金 PRO 主题；`be3d03c`（表格网速列纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，跳过；`5ce90c0` 探针表格优化（表格流量列增强）；基线 `2dc05b3`（2026-08-10）。后续本地迭代：ProbeHub 全局连接聚合、流量计费口径 drawer、趋势弹窗三线切换与手机端免滚动撑满、卡片单向计费修正、白金水印等。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
+本 fork 的功能基线已提升到上游 `e6f3a11`（2026-09-11）。`ab9233d` 至 `e6f3a11` 的外置探针 Passkey 登录、Premium 续费时间轴点击、移动端双行顶栏和白金三视图对比度修复已按本 fork 架构移植；Passkey Worker 只放行两条固定 POST 鉴权路径，不携带只读 `PROBE_TOKEN`。此前 `d706d7e`、`31f7a4b`、`bd651cb`、`f6fc04b` 的转发链网络状况能力也已移植：优先读取 WS `payload.forward`、HTTP 兜底、按服务器/转发链固定位置切换、浅色主题与布局抖动修复、按组切换的每日流量堆叠柱状图。`6221dd1` 的原始上下行趋势、计费口径工具、`traffic_stats_mode` 修正、服务器旗标和动态地区图同样已吸收；与本地九套主题、Ran/Premium 定制大面积冲突的结构性重构不会直接覆盖，而是逐项移植功能，避免界面回退。更早吸收：`8d82a8b` 移除登录；`ce624cf` twemoji 本地化（public/twemoji/ ~3650 个本地 SVG，零外部依赖）；`3ed41ca` Premium 黑金 PRO 主题；`be3d03c`（表格网速列纵向 + ping-pair 单列）经评估与 fork 三视图布局不兼容，跳过；`5ce90c0` 探针表格优化（表格流量列增强）；基线 `2dc05b3`（2026-08-10）。后续本地迭代：ProbeHub 全局连接聚合、流量计费口径 drawer、趋势弹窗三线切换与手机端免滚动撑满、卡片单向计费修正、白金水印等。若上游有更新，可手动合并（注意 `src/styles.css`、`src/types.ts`、`src/use-probe.ts` 有大量本地定制，合并可能冲突，需逐一确认）：
 
 ```bash
 git fetch origin
