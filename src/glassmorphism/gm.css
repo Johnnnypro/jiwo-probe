@@ -1041,6 +1041,14 @@ body.gm-body .recharts-cartesian-grid-vertical line {
 body.gm-body .recharts-tooltip-cursor {
   stroke: var(--border);
 }
+/* 二级详情页趋势图：固定纵轴直接沿用外层面板底色。
+   同时裁掉纵轴后方的滚动图层，避免透明后出现重复刻度或曲线。 */
+body.gm-body .chart-scroll {
+  clip-path: inset(0 0 0 68px);
+}
+body.gm-body .chart-fixed-y-axis {
+  background: transparent;
+}
 /* ping 等级块改用 gm 状态色 */
 body.gm-body .ping-blocks i.good { background: var(--green); }
 body.gm-body .ping-blocks i.warn { background: var(--amber); }

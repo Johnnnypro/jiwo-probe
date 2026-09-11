@@ -3951,17 +3951,6 @@ footer a:hover {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
-.lumina-subtitle {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  max-width: 42%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-}
 .lumina-card-actions {
   display: flex;
   align-items: center;
@@ -4521,27 +4510,19 @@ footer a:hover {
   }
 }
 
-/* ===== Lumina · 主控白金 / 黑金毛玻璃视觉迁移 =====
-   只覆盖材质与配色；卡片数据、趋势图、地球及交互逻辑保持不变。 */
+/* ===== Lumina · 主控白金 / 黑金视觉迁移 =====
+   Lumina 使用不透明表层；卡片数据、趋势图、地球及交互逻辑保持不变。 */
 :root.theme-lumina {
-  --lumina-glass-card: color-mix(in srgb, var(--surface) 82%, transparent);
-  --lumina-glass-panel: color-mix(in srgb, var(--surface) 82%, transparent);
-  --lumina-glass-control: color-mix(in srgb, var(--surface) 74%, transparent);
+  --lumina-glass-card: var(--surface);
+  --lumina-glass-panel: var(--surface);
+  --lumina-glass-control: var(--surface);
   --lumina-card-shadow: 0 12px 30px rgba(47, 42, 32, 0.07);
   --lumina-active-gradient: linear-gradient(105deg, #b87b1e, #e3bd63);
   --lumina-active-gradient-hover: linear-gradient(105deg, #c98e2d, #f0d58a);
 }
 
-/* 浅色 / 白金：减少背景图透入卡片，恢复更干净的白色表层。 */
-:root.theme-lumina:not(.dark):not(.gold) {
-  --lumina-glass-card: color-mix(in srgb, var(--surface) 90%, transparent);
-}
-
 :root.theme-lumina.dark,
 :root.theme-lumina.gold {
-  --lumina-glass-card: color-mix(in srgb, var(--surface) 80%, transparent);
-  --lumina-glass-panel: color-mix(in srgb, var(--surface) 82%, transparent);
-  --lumina-glass-control: color-mix(in srgb, var(--surface) 76%, transparent);
   --lumina-card-shadow: 0 16px 34px rgba(0, 0, 0, 0.25);
 }
 
@@ -4550,20 +4531,18 @@ footer a:hover {
   background-color: var(--page-bg);
 }
 
-/* 顶栏：sticky 元素叠加 backdrop-filter 会在 Chrome 数据刷新时重建合成层，
-   产生肉眼可见的整栏抖动；保留半透明玻璃底色，但不用动态背景模糊。 */
+/* 顶栏：使用不透明表层并关闭动态背景模糊，避免 Chrome 重建合成层。 */
 :root.theme-lumina .topbar {
   border-width: 0;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  background: var(--surface);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: none;
 }
 
-/* Lumina 黑金：页首与固定许可证页尾直接使用卡片的同一背景色；
-   顶栏仍不启用动态模糊，防止再次抖动。 */
-:root.theme-lumina.gold .topbar,
-:root.theme-lumina.gold .probe-license-footer {
+/* 页首与固定许可证页尾直接使用卡片的同一不透明背景色。 */
+:root.theme-lumina .topbar,
+:root.theme-lumina .probe-license-footer {
   background: var(--lumina-glass-card);
 }
 
@@ -4575,7 +4554,8 @@ footer a:hover {
   color: #d8c69f;
 }
 
-/* 主卡片、摘要、工具栏、地球和榜单统一为无边框毛玻璃。 */
+/* 主卡片、摘要、工具栏、地球和榜单统一为无边框不透明表层。
+   Lumina 不再使用动态背景模糊，避免大量卡片滚动时触发 Chrome 合成层频闪。 */
 :root.theme-lumina .server-card,
 :root.theme-lumina .lumina-card,
 :root.theme-lumina .summary-card,
@@ -4585,8 +4565,8 @@ footer a:hover {
 :root.theme-lumina .server-mini-card {
   border-width: 0 !important;
   background: var(--lumina-glass-card) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(1.16);
-  backdrop-filter: blur(18px) saturate(1.16);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: var(--lumina-card-shadow) !important;
 }
 
@@ -4619,14 +4599,14 @@ footer a:hover {
   animation: none;
 }
 
-/* 详情页、弹窗与下拉菜单保留 1px 结构线，使用更强的浮层玻璃。 */
+/* 详情页、弹窗与下拉菜单保留 1px 结构线和不透明浮层。 */
 :root.theme-lumina .server-detail,
 :root.theme-lumina .modal,
 :root.theme-lumina .region-menu {
   border: 1px solid color-mix(in srgb, var(--border) 78%, var(--primary));
   background: var(--lumina-glass-panel);
-  -webkit-backdrop-filter: blur(22px) saturate(1.16);
-  backdrop-filter: blur(22px) saturate(1.16);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
 }
 
@@ -4643,24 +4623,24 @@ footer a:hover {
   border-bottom-width: 1px;
   border-bottom-color: color-mix(in srgb, var(--border) 78%, var(--primary));
   background: var(--lumina-glass-panel);
-  -webkit-backdrop-filter: blur(18px) saturate(1.14);
-  backdrop-filter: blur(18px) saturate(1.14);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 :root.theme-lumina .detail-panel {
   border-width: 1px;
   border-color: color-mix(in srgb, var(--border) 78%, var(--primary));
   background: var(--lumina-glass-control);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 :root.theme-lumina .node-stats button,
 :root.theme-lumina .speed-summary,
 :root.theme-lumina .assets-main {
   background: var(--lumina-glass-control);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
 
@@ -4683,7 +4663,7 @@ footer a:hover {
 }
 
 :root.theme-lumina .recharts-default-tooltip {
-  background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+  background: var(--surface) !important;
 }
 
 /* 未选中的按钮无金框；保留透明边框占位，避免切换时尺寸跳动。 */
@@ -4694,8 +4674,8 @@ footer a:hover {
 :root.theme-lumina .ranges button:not(.active) {
   border-color: transparent;
   background: var(--lumina-glass-control);
-  -webkit-backdrop-filter: blur(18px) saturate(1.16);
-  backdrop-filter: blur(18px) saturate(1.16);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.24) inset;
 }
 
@@ -4705,7 +4685,7 @@ footer a:hover {
 :root.theme-lumina .trend-mode-switch button:not(.active):hover,
 :root.theme-lumina .ranges button:not(.active):hover {
   border-color: transparent;
-  background: color-mix(in srgb, var(--surface) 48%, transparent);
+  background: var(--hover-bg);
 }
 
 /* 搜索、地区选择与详情选择器仍保留 1px 输入结构线。 */
@@ -4716,8 +4696,8 @@ footer a:hover {
   border-width: 1px;
   border-color: color-mix(in srgb, var(--border) 82%, var(--primary));
   background: var(--lumina-glass-control);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* 黑金/白金选中项与主要状态使用主控同款暖金渐变。 */
@@ -4771,20 +4751,9 @@ footer a:hover {
   box-shadow: 0 0 9px -2px #a87c22;
 }
 
-@media (max-width: 760px) {
-  :root.theme-lumina .topbar {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  :root.theme-lumina .server-card,
-  :root.theme-lumina .lumina-card,
-  :root.theme-lumina .summary-card,
-  :root.theme-lumina .probe-toolbar,
-  :root.theme-lumina .globe-card,
-  :root.theme-lumina .leaderboard-card,
-  :root.theme-lumina .server-mini-card {
-    -webkit-backdrop-filter: blur(16px) saturate(1.14);
-    backdrop-filter: blur(16px) saturate(1.14);
-  }
+/* 清除 Lumina 继承到的全局页尾与详情遮罩模糊；许可证动画和内容保持原样。 */
+:root.theme-lumina .probe-license-footer,
+:root.theme-lumina .server-detail-backdrop {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
