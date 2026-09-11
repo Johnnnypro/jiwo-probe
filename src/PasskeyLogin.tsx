@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { KeyRound } from 'lucide-react'
+import './PasskeyLogin.css'
 
 function isSecure(): boolean {
   return (
@@ -29,7 +30,7 @@ interface FinishPayload {
 }
 
 /** 使用已在主控注册的 Passkey 登录，并把成功登录态安全地带回主控。 */
-export function PasskeyLogin() {
+export function PasskeyLogin({ buttonClassName, iconSize = 18 }: { buttonClassName?: string; iconSize?: number } = {}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -81,12 +82,14 @@ export function PasskeyLogin() {
     <span className="probe-passkey-login">
       <button
         type="button"
+        className={buttonClassName}
         aria-label="使用 Passkey 登录"
+        aria-busy={busy}
         title="使用 Passkey 登录"
         onClick={login}
         disabled={busy}
       >
-        <KeyRound size={18} />
+        <KeyRound size={iconSize} />
       </button>
       {error && <em className="probe-passkey-error" role="status">{error}</em>}
     </span>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { PasskeyLogin } from '../../../PasskeyLogin'
 import { Etch } from '@/components/atoms/Etch'
 import { SerialPlate } from '@/components/atoms/SerialPlate'
 import { StatusDot } from '@/components/atoms/StatusDot'
@@ -203,8 +204,10 @@ export function Topbar({
 
   return (
     <header
+      className="ran-topbar"
       style={{
         display: 'flex',
+        flexWrap: isNarrow ? 'wrap' : 'nowrap',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: isMobile ? '10px 14px' : '12px 24px',
@@ -218,7 +221,7 @@ export function Topbar({
         position: 'relative',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, minWidth: 0, flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, minWidth: 0, flex: isNarrow ? '1 0 100%' : 1 }}>
         {/* Hamburger — mobile only */}
         {showHamburger && (
           <button
@@ -289,7 +292,7 @@ export function Topbar({
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: useCompactControls ? 6 : 12, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: isNarrow ? 4 : useCompactControls ? 6 : 12, flexShrink: 0, flexWrap: isNarrow ? 'wrap' : 'nowrap', maxWidth: '100%', marginLeft: isNarrow ? 'auto' : undefined }}>
         {/* Search — full pill on desktop, icon-only on mobile.
             When searchEnabled is false (pages without node lists), the
             search affordance is hidden entirely so we don't show a control
@@ -450,6 +453,7 @@ export function Topbar({
         )}
         <GlobalThemeSwitch />
         <ThemePicker value={theme} onChange={(v) => onTheme(v)} />
+        <PasskeyLogin buttonClassName="ran-passkey-button" iconSize={16} />
       </div>
 
       {/* Mobile search panel — full-width drop-down below the header. */}

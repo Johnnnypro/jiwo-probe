@@ -57,6 +57,35 @@
   --hairline: 1px;
 }
 
+/* Passkey 沿用顶栏搜索按钮的凹面与细边，颜色跟随所有 Ran 变体。 */
+.ran-topbar .probe-passkey-login { --passkey-focus: var(--accent); }
+.ran-passkey-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--fg-1);
+  background: var(--bg-inset);
+  border: 1px solid var(--edge-engrave);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--edge-deep), inset 0 -1px 0 var(--edge-bright);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.ran-passkey-button:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--bg-3);
+}
+.ran-topbar .probe-passkey-error {
+  color: var(--fg-0);
+  background: var(--bg-1);
+  border-color: var(--edge-mid);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 var(--edge-bright) inset, 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
 /* ── ran-night (deep) ─────────────────────────────────────── */
 [data-theme='ran-night'] {
   --bg-0: #0c0d0f;

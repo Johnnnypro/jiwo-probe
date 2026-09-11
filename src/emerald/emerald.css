@@ -229,6 +229,14 @@
   align-items: center;
   gap: 8px;
 }
+.emerald-header .probe-passkey-login { --passkey-focus: var(--em-accent); }
+.emerald-header .probe-passkey-error {
+  color: var(--em-text);
+  background: var(--em-surface-solid);
+  border-color: var(--em-border-strong);
+  border-radius: 10px;
+  box-shadow: var(--em-shadow);
+}
 
 .emerald-header-search,
 .emerald-sort,

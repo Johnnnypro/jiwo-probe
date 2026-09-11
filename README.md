@@ -157,7 +157,7 @@ ProbeHub 连接或快照异常时会自动回退到原来的主控直连，不�
 - Node.js 22 或更高版本、npm 10 或更高版本
 - 主控具有可由 Cloudflare 访问的 HTTPS 地址
 
-如需从外置探针使用 Passkey 登录，先在主控注册 Passkey，并在主控的 `MMWX_WEBAUTHN_RELATED_ORIGINS` 中加入探针完整来源（例如 `https://tz.example.com`）。探针只提供登录入口，不提供 Passkey 注册。
+九套主题的页首均提供 Passkey 登录入口，按钮、键盘焦点和错误提示随当前主题配色；Glassmorphism、Emerald 和 Ran（含各配色变体）使用各自的原生按钮样式。如需从外置探针使用 Passkey 登录，先在主控注册 Passkey，并在主控的 `MMWX_WEBAUTHN_RELATED_ORIGINS` 中加入探针完整来源（例如 `https://tz.example.com`）。探针只提供登录入口，不提供 Passkey 注册。
 
 先进入主控的"系统设置 → 探针"，启用探针、选择展示服务器和指标，然后生成"独立探针访问密钥"。密钥明文只显示一次，请立即保存，切勿提交到 Git。
 

@@ -38,6 +38,7 @@ import { RegionGlobe } from '../RegionGlobe'
 import { ServerDetail } from '../ServerDetail'
 import { TrafficDialog, TrendDialog } from '../App'
 import { Twemoji } from '../Twemoji'
+import { PasskeyLogin } from '../PasskeyLogin'
 import { flagToCountryCode } from '../country-flag'
 import type { ProbeBucket, ProbePayload, ProbeServer, ThemeName } from '../types'
 import type { EnrichedServer } from '../use-probe'
@@ -763,6 +764,7 @@ export default function EmeraldApp({ data, onThemeChange }: { data: ProbePayload
             {colorMode === 'auto' ? <SunMoon size={17} /> : colorMode === 'light' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
           <ThemeMenu current={themeOverride} onChange={handleTheme} />
+          <PasskeyLogin buttonClassName="emerald-icon-button" iconSize={17} />
         </div>
       </header>
 

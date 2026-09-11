@@ -27,6 +27,7 @@ import type { ProbePayload, ProbeServer, ThemeName } from '../types'
 import { computeRemainingValue, formatMoney } from '../value'
 import { flagToCountryCode } from '../country-flag'
 import { Twemoji } from '../Twemoji'
+import { PasskeyLogin } from '../PasskeyLogin'
 import './gm.css'
 import { ServerDetail } from '../ServerDetail'
 import { useVisitorInfo } from '../ran/hooks/useVisitorInfo'
@@ -730,6 +731,7 @@ export default function GmApp({
             )}
           </button>
           <GmThemeMenu current={themeOverride} onChange={handleThemeChange} />
+          <PasskeyLogin buttonClassName="gm-header-btn" />
         </div>
       </header>
 

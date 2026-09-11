@@ -92,27 +92,9 @@ button {
   display: flex;
   gap: 6px;
 }
-.probe-passkey-login {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.probe-passkey-error {
-  position: absolute;
-  z-index: 90;
-  top: calc(100% + 8px);
-  right: 0;
-  width: max-content;
-  max-width: min(280px, 80vw);
-  padding: 6px 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--foreground);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  font-size: 12px;
-  font-style: normal;
-  white-space: normal;
+.topbar .probe-passkey-error {
+  left: 0;
+  right: auto;
 }
 .topbar button,
 .ranges button {

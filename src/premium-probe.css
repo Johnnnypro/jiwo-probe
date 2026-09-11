@@ -340,6 +340,21 @@
   opacity: 0.55;
   cursor: default;
 }
+.premium-probe-theme-switch .probe-passkey-login { --passkey-focus: var(--pp-gold-bright); }
+.premium-probe-theme-switch .probe-passkey-error {
+  left: 0;
+  right: auto;
+  color: #f3ecdc;
+  background: var(--pp-panel);
+  border-color: var(--pp-border);
+  border-radius: 0.48rem;
+}
+:root.theme-premium.platinum .probe-passkey-login { --passkey-focus: #8a6210; }
+:root.theme-premium.platinum .probe-passkey-error {
+  color: #241e14;
+  background: #fffdf8;
+  border-color: rgba(168, 124, 34, 0.34);
+}
 :root.theme-premium.platinum .premium-probe-theme-switch .probe-passkey-login button {
   color: #8a6210;
   border-color: rgba(168, 124, 34, 0.34);
