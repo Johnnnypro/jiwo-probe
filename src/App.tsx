@@ -1,8 +1,9 @@
 import { useNetworkSpeed } from './use-network-speed'
+import { ConnectionCounts, UnlockButton } from './ServerCapabilities'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lottie from 'lottie-react'
-import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Crown, Database, Gauge, Gem, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, SunMoon, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
+import { Activity, ArrowDown, ArrowDownUp, ArrowUp, BadgeDollarSign, Cable, Calendar, CalendarClock, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Clock, Clock3, Cpu, Crown, Database, Gauge, Gem, Globe2, HardDrive, LayoutGrid, List, MapPin, MemoryStick, Monitor, Moon, MoveHorizontal, Network, Palette, PieChart, RefreshCw, Rows3, Rows4, Search, Server, Sun, SunMoon, TrendingUp, Trophy, Unplug, Wallet, Wifi, XCircle, ZoomIn, ZoomOut } from 'lucide-react'
 import { siAlmalinux, siAlpinelinux, siApple, siArchlinux, siCentos, siDebian, siFedora, siFreebsd, siGentoo, siKalilinux, siLinux, siLinuxmint, siNixos, siOpensuse, siProxmox, siRedhat, siRockylinux, siUbuntu } from 'simple-icons'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProbeBucket, ProbePingSeries, ProbeReturnRoute, ProbeServer, ThemeName } from './types'
@@ -20,6 +21,8 @@ import { CardPingGroups } from './CardPingGroups'
 import { pingTargetOptions, isPingAverage } from './ping-groups'
 import { ServerDetail } from './ServerDetail'
 import { computeRemainingValue, formatMoney } from './value'
+import { LEADERBOARD_ORDER, rankConnectionCounts, type LeaderboardKey } from './leaderboards'
+import { connectionCount } from './unlocks'
 import commonRouteAnimation from './assets/return-route/common.json'
 import premiumRouteAnimation from './assets/return-route/premium.json'
 
@@ -453,8 +456,6 @@ export function averagePing(series: ProbePingSeries[]): ProbePingSeries {
   }
 }
 
-type LeaderboardKey = 'cpu' | 'mem' | 'disk' | 'load' | 'traffic' | 'usage' | 'speed' | 'uptime' | 'today' | 'week' | 'loss-cn' | 'loss-idc' | 'cost' | 'expiry' | 'ping-cn' | 'ping-idc'
-
 const isCnLabel = (label: string) => /电信|联通|移动/.test(label)
 
 function groupedPingAvg(ping: ProbePingSeries[], cn: boolean): number {
@@ -510,29 +511,32 @@ function avgLossPct(server: ProbeServer, cn: boolean): number {
   return losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : -1
 }
 
-const LEADERBOARD_TABS: { key: LeaderboardKey; label: string; icon: React.ReactNode }[] = [
-  { key: 'cpu', label: 'CPU', icon: <Cpu size={13} /> },
-  { key: 'mem', label: '内存', icon: <MemoryStick size={13} /> },
-  { key: 'disk', label: '磁盘', icon: <HardDrive size={13} /> },
-  { key: 'load', label: '负载', icon: <Server size={13} /> },
-  { key: 'traffic', label: '流量', icon: <PieChart size={13} /> },
-  { key: 'usage', label: '流量使用率', icon: <Database size={13} /> },
-  { key: 'speed', label: '实时速度', icon: <ArrowDownUp size={13} /> },
-  { key: 'uptime', label: '在线时长', icon: <Clock size={13} /> },
-  { key: 'today', label: '今日流量', icon: <CalendarClock size={13} /> },
-  { key: 'week', label: '近7日流量', icon: <TrendingUp size={13} /> },
-  { key: 'loss-cn', label: '内地丢包率', icon: <Activity size={13} /> },
-  { key: 'loss-idc', label: '海外丢包率', icon: <Wifi size={13} /> },
-  { key: 'cost', label: '月成本', icon: <Wallet size={13} /> },
-  { key: 'expiry', label: '到期时间', icon: <Calendar size={13} /> },
-  { key: 'ping-cn', label: '内地延迟', icon: <Gauge size={13} /> },
-  { key: 'ping-idc', label: '海外延迟', icon: <Globe2 size={13} /> },
-]
+const LEADERBOARD_META: Record<LeaderboardKey, { label: string; icon: React.ReactNode }> = {
+  cpu: { label: 'CPU', icon: <Cpu size={13} /> },
+  mem: { label: '内存', icon: <MemoryStick size={13} /> },
+  disk: { label: '磁盘', icon: <HardDrive size={13} /> },
+  load: { label: '负载', icon: <Server size={13} /> },
+  traffic: { label: '流量', icon: <PieChart size={13} /> },
+  usage: { label: '流量使用率', icon: <Database size={13} /> },
+  speed: { label: '实时速度', icon: <ArrowDownUp size={13} /> },
+  tcp: { label: 'TCP 连接数', icon: <Cable size={13} /> },
+  udp: { label: 'UDP 连接数', icon: <Network size={13} /> },
+  uptime: { label: '在线时长', icon: <Clock size={13} /> },
+  today: { label: '今日流量', icon: <CalendarClock size={13} /> },
+  week: { label: '近7日流量', icon: <TrendingUp size={13} /> },
+  'loss-cn': { label: '内地丢包率', icon: <Activity size={13} /> },
+  'loss-idc': { label: '海外丢包率', icon: <Wifi size={13} /> },
+  cost: { label: '月成本', icon: <Wallet size={13} /> },
+  expiry: { label: '到期时间', icon: <Calendar size={13} /> },
+  'ping-cn': { label: '内地延迟', icon: <Gauge size={13} /> },
+  'ping-idc': { label: '海外延迟', icon: <Globe2 size={13} /> },
+}
+const LEADERBOARD_TABS = LEADERBOARD_ORDER.map(key => ({ key, ...LEADERBOARD_META[key] }))
 
 function Leaderboard({ servers }: { servers: ProbeServer[] }) {
   const networkSpeed = useNetworkSpeed()
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState<LeaderboardKey>('cpu')
+  const [tab, setTab] = useState<LeaderboardKey>(LEADERBOARD_ORDER[0])
   const [desc, setDesc] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
   const selectTab = (key: LeaderboardKey) => {
@@ -546,7 +550,11 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
   }
   const pingTab = tab === 'ping-cn' || tab === 'ping-idc'
   const lossTab = tab === 'loss-cn' || tab === 'loss-idc'
+  const connectionTab = tab === 'tcp' || tab === 'udp'
   const rows = useMemo(() => {
+    if (tab === 'tcp' || tab === 'udp') {
+      return rankConnectionCounts(servers, tab, desc).slice(0, 10).map(row => ({ ...row, lines: [] }))
+    }
     const indexed = servers.map((server, index) => {
       const avg = averagePing(server.ping || [])
       const value =
@@ -578,13 +586,14 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
       .filter((row) => row.value >= 0)
       .sort((a, b) => (desc ? b.value - a.value : a.value - b.value))
       .slice(0, 10)
-  }, [servers, tab, desc, pingTab])
+  }, [servers, tab, desc, pingTab, lossTab])
   const format = (value: number, server: ProbeServer) =>
     tab === 'cpu' || tab === 'mem' || tab === 'disk' ? `${value.toFixed(1)}%`
     : tab === 'load' ? value.toFixed(2)
     : tab === 'traffic' ? bytes(value, false)
     : tab === 'usage' ? `${value.toFixed(1)}%`
     : tab === 'speed' ? `↓${networkSpeed(server.download_speed ?? 0)} ↑${networkSpeed(server.upload_speed ?? 0)}`
+    : connectionTab ? connectionCount(value)
     : tab === 'uptime' ? formatUptime(value)
     : tab === 'today' || tab === 'week' ? bytes(value, false)
     : tab === 'loss-cn' || tab === 'loss-idc' ? `${value.toFixed(2)}%`
@@ -607,13 +616,14 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
         <div className="leaderboard-body">
           <div className="leaderboard-tabs">
             {LEADERBOARD_TABS.map((item) => (
-              <button key={item.key} className={tab === item.key ? 'active' : ''} onClick={() => selectTab(item.key)}>
+              <button key={item.key} type="button" aria-pressed={tab === item.key} className={tab === item.key ? 'active' : ''} onClick={() => selectTab(item.key)}>
                 {item.icon}
                 {item.label}
                 {tab === item.key && <span className="sort-arrow">{desc ? '↓' : '↑'}</span>}
               </button>
             ))}
           </div>
+          {connectionTab && <p className="lb-note">{tab === 'tcp' ? '整机已建立 TCP 连接数' : '整机 UDP socket 数'}，非代理用户数；未上报不参与排名，离线节点显示最近上报值。</p>}
           <ol
             className="leaderboard-list"
             onClick={(event) => {
@@ -687,7 +697,7 @@ function Leaderboard({ servers }: { servers: ProbeServer[] }) {
             ))}
             {!rows.length && (
               <li className="lb-empty">
-                {tab === 'uptime' || tab === 'today' ? '等待探针数据上报' : '暂无数据'}
+                {connectionTab || tab === 'uptime' || tab === 'today' ? '等待探针数据上报' : '暂无数据'}
               </li>
             )}
           </ol>
@@ -1631,29 +1641,6 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
   const trafficFraction = server.traffic_limit ? pct(server.traffic_used, server.traffic_limit) / 100 : 0
   const upRate = server.upload_speed
   const downRate = server.download_speed
-  const trafficUp = server.cumulative_up
-  const trafficDown = server.cumulative_down
-  // 当前周期流量(物理口径): 主控 2026-08-10 新增 traffic_used_up/down(40/40 有值, 与Σdaily_traffic 精确一致)，
-  // 优先直读字段; 缺失回退 cycle_daily_traffic 每日上下行 sum 比例估算(物理口径), 再回退 cumulative, 再回退 0.5
-  // 注意: traffic_used(计费口径, oneway 只算单向) ≠ traffic_used_up+down(物理口径), 上下行展示用物理值
-  let cycleUp = server.traffic_used_up
-  let cycleDown = server.traffic_used_down
-  if (cycleUp === undefined || cycleDown === undefined) {
-    const cycleDaily = server.cycle_daily_traffic ?? server.daily_traffic ?? []
-    const dailyUp = cycleDaily.reduce((acc, item) => acc + (item.uplink ?? 0), 0)
-    const dailyDown = cycleDaily.reduce((acc, item) => acc + (item.downlink ?? 0), 0)
-    const cycleRatioUp =
-      dailyUp + dailyDown > 0
-        ? dailyUp / (dailyUp + dailyDown)
-        : trafficUp !== undefined && trafficDown !== undefined && trafficUp + trafficDown > 0
-          ? trafficUp / (trafficUp + trafficDown)
-          : 0.5
-    const base = server.traffic_used !== undefined ? server.traffic_used : server.traffic_used_total
-    if (base !== undefined) {
-      cycleUp = base * cycleRatioUp
-      cycleDown = base * (1 - cycleRatioUp)
-    }
-  }
   const expireValue = server.expires_at ? remainingDays(server.expires_at) : null
   // 今日流量用量(本地时区当天; 当天无记录时回退 daily_traffic 最后一天)
   const dailyRows = server.daily_traffic || []
@@ -1688,6 +1675,7 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
             </h2>
           </div>
           <span className="lumina-card-actions">
+            <UnlockButton server={server} />
             <span title={systemTitle(server)}>
               <SystemIcon server={server} />
             </span>
@@ -1736,26 +1724,23 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
           )}
         </div>
 
-        {(upRate !== undefined || downRate !== undefined) && (
-          <div className="lumina-traffic-section">
-            <div className="lumina-traffic-stat" title="上行速率与当前周期上行流量">
-              <span className="lumina-traffic-direction">
-                <ArrowUp size={15} />
-              </span>
-              <strong className="tabular" style={{ color: 'var(--traffic-up)' }}>
-                {networkSpeed(upRate)}
-              </strong>
-              <small className="tabular">{cycleUp !== undefined ? `周期 ${bytes(cycleUp)}` : ''}</small>
+        <div className="lumina-traffic-section">
+          <div className="lumina-network-row speed--connections">
+            <div className="card-speed-pair">
+              {(upRate !== undefined || downRate !== undefined) && <>
+                <span className="download" title={`下行 ${networkSpeed(downRate)}`}>
+                  <ArrowDown size={13} />
+                  <strong className="card-speed-value">{networkSpeed(downRate)}</strong>
+                </span>
+                <span className="upload" title={`上行 ${networkSpeed(upRate)}`}>
+                  <ArrowUp size={13} />
+                  <strong className="card-speed-value">{networkSpeed(upRate)}</strong>
+                </span>
+              </>}
             </div>
-            <div className="lumina-traffic-stat" title="下行速率与当前周期下行流量">
-              <span className="lumina-traffic-direction">
-                <ArrowDown size={15} />
-              </span>
-              <strong className="tabular" style={{ color: 'var(--traffic-down)' }}>
-                {networkSpeed(downRate)}
-              </strong>
-              <small className="tabular">{cycleDown !== undefined ? `周期 ${bytes(cycleDown)}` : ''}</small>
-            </div>
+            <ConnectionCounts server={server} variant="inline" />
+          </div>
+          {(upRate !== undefined || downRate !== undefined) && (
             <div className="lumina-traffic-pulse-wrap">
               <div className="lumina-today-stat" title="今日流量用量(总/上行/下行)">
                 <span className="lumina-today-head">
@@ -1785,8 +1770,8 @@ function ServerCardLumina({ server, index }: { server: EnrichedServer; index: nu
                 <LuminaTrafficPulse samples={server.daily_traffic} />
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {server.traffic_used !== undefined && (
           <div className="lumina-quota" title={`流量阈值 · 剩余 ${server.traffic_limit ? bytes(server.traffic_limit - server.traffic_used) : ''}`}>
@@ -1873,6 +1858,7 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
         <h2>
           <Twemoji>{flag && !hasLeadingFlag(name) ? `${flag} ${name}` : name}</Twemoji>
         </h2>
+        <UnlockButton server={server} />
         <span title={systemTitle(server)} onClick={(event) => event.stopPropagation()}>
           <SystemIcon server={server} />
         </span>
@@ -1910,18 +1896,21 @@ function ServerCard({ server, index }: { server: ProbeServer; index: number }) {
           </button>
         )}
       </div>
-      {(server.upload_speed !== undefined || server.download_speed !== undefined) && (
-        <div className="speed">
-          <span className="download">
-            <ArrowDown size={16} />
-            {networkSpeed(server.download_speed)}
-          </span>
-          <span className="upload">
-            <ArrowUp size={16} />
-            {networkSpeed(server.upload_speed)}
-          </span>
+      <div className="speed speed--connections">
+        <div className="card-speed-pair">
+          {(server.upload_speed !== undefined || server.download_speed !== undefined) && <>
+            <span className="download" title={`下行 ${networkSpeed(server.download_speed)}`}>
+              <ArrowDown size={13} />
+              <span className="card-speed-value">{networkSpeed(server.download_speed)}</span>
+            </span>
+            <span className="upload" title={`上行 ${networkSpeed(server.upload_speed)}`}>
+              <ArrowUp size={13} />
+              <span className="card-speed-value">{networkSpeed(server.upload_speed)}</span>
+            </span>
+          </>}
         </div>
-      )}
+        <ConnectionCounts server={server} variant="inline" />
+      </div>
       <CardPingGroups variant="classic" ping={server.ping} serverIndex={index} serverName={server.name} />
       {!!server.return_routes?.length && <ReturnRouteBadges routes={server.return_routes} telecomPaidPeer={server.telecom_paid_peer} variant={document.documentElement.classList.contains('theme-anime') ? 'anime' : undefined} />}
       {(server.expires_at || server.renewal_price !== undefined) && (
@@ -2033,6 +2022,7 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
           </span>
         )}
         {dying && <span className="mini-expiry">{remainingDays(server.expires_at)}</span>}
+        <UnlockButton server={server} />
       </div>
       {expanded && (
         <div className="mini-detail mini-resources">
@@ -2102,6 +2092,7 @@ function ServerMiniCard({ server, index, expanded }: { server: ProbeServer; inde
           )}
         </div>
       )}
+      <ConnectionCounts server={server} variant="card" />
     </article>
   )
 }
@@ -2260,7 +2251,7 @@ function ServerTable({ servers }: { servers: ProbeServer[] }) {
               return (
                 <tr key={`${server.name}-${index}`} className="table-row-link" onClick={() => { location.hash = `#/server/${index}` }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.hash = `#/server/${index}` } }}>
                   <td className="table-name">
-                    <Twemoji>{server.name || `服务器 ${index + 1}`}</Twemoji>
+                    <div className="probe-unlock-name-line"><Twemoji>{server.name || `服务器 ${index + 1}`}</Twemoji><UnlockButton server={server} /></div>
                     {server.region && <small>{server.region}</small>}
                     {server.expires_at &&
                       (server.provider_url ? (
