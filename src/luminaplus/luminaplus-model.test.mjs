@@ -1,6 +1,71 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { trafficWeek, trafficPopoverPosition } from './luminaplus-traffic.ts'
+import { rankLiveSpeeds, rankPeriodTraffic } from './luminaplus-model.ts'
+
+test('period ranking uses billed usage without re-adding directions or doubling one-way traffic', () => {
+  const servers = [
+    { online: true, traffic_stats_mode: 'max', traffic_used: 90, traffic_used_up: 90, traffic_used_down: 80 },
+    { online: true, traffic_stats_mode: 'upload', traffic_used: 100, traffic_used_up: 100, traffic_used_down: 900 },
+    { online: true, traffic_stats_mode: 'both', traffic_used: 120, traffic_used_up: 30, traffic_used_down: 70, traffic_adjustment: 20 },
+  ]
+  assert.deepEqual(rankPeriodTraffic(servers).map(row => [row.index, row.value]), [[2, 120], [1, 100], [0, 90]])
+  assert.deepEqual(rankPeriodTraffic(servers, 'upload').map(row => row.index), [1, 0, 2])
+  assert.deepEqual(rankPeriodTraffic(servers, 'download').map(row => row.index), [1, 0, 2])
+})
+
+test('period ranking includes offline usage, preserves real zero, and keeps original route indices', () => {
+  const servers = [
+    { name: 'zero', online: false, traffic_used: 0, traffic_used_total: 999 },
+    { name: 'offline', online: false, traffic_used: 100 },
+    { name: 'legacy', online: true, traffic_used_total: 100 },
+  ]
+  assert.deepEqual(rankPeriodTraffic(servers).map(row => [row.index, row.value]), [[1, 100], [2, 100], [0, 0]])
+  assert.equal(rankPeriodTraffic(servers)[0].server.name, 'offline')
+  assert.equal(servers[0].name, 'zero')
+})
+
+test('period ranking never substitutes lifetime, boot, daily totals, or incomplete direction data', () => {
+  const servers = [
+    { cumulative_up: 9999, cumulative_down: 9999, boot_traffic_up: 999, boot_traffic_down: 999 },
+    { traffic_used_up: 200, traffic_used_down: 300, daily_traffic: [{ date: '2026-09-30', total: 20000 }] },
+    { traffic_used: -1, traffic_used_total: 400 },
+    { traffic_used: '500', traffic_used_up: Infinity, traffic_used_down: NaN },
+    { traffic_used: Infinity },
+  ]
+  assert.deepEqual(rankPeriodTraffic(servers), [])
+  assert.deepEqual(rankPeriodTraffic(servers, 'upload').map(row => [row.index, row.value]), [[1, 200]])
+  assert.deepEqual(rankPeriodTraffic([]), [])
+})
+
+test('speed ranking sorts actual duplex bytes/s and retains original server route indices', () => {
+  const servers = [
+    { name: 'A', online: true, upload_speed: 500, download_speed: 100 },
+    { name: 'B', online: true, upload_speed: 200, download_speed: 900 },
+    { name: 'C', online: true, upload_speed: 800, download_speed: 300 },
+  ]
+  assert.deepEqual(rankLiveSpeeds(servers).map(row => [row.index, row.value]), [[1, 1100], [2, 1100], [0, 600]])
+  assert.deepEqual(rankLiveSpeeds(servers, 'upload').map(row => row.index), [2, 0, 1])
+  assert.deepEqual(rankLiveSpeeds(servers, 'download').map(row => row.index), [1, 2, 0])
+  assert.equal(rankLiveSpeeds(servers)[0].server.name, 'B')
+  assert.equal(servers[0].name, 'A')
+})
+
+test('speed ranking excludes offline stale counters and unknown values, but preserves real zero', () => {
+  const servers = [
+    { online: false, upload_speed: 100000, download_speed: 100000 },
+    { online: true, upload_speed: 0, download_speed: 0 },
+    { online: true, upload_speed: 500 },
+    { online: true, upload_speed: -1, download_speed: 10 },
+    { online: true, upload_speed: NaN, download_speed: Infinity },
+    { online: true, upload_speed: '100', download_speed: null },
+  ]
+  assert.deepEqual(rankLiveSpeeds(servers).map(row => [row.index, row.value]), [[1, 0]])
+  assert.deepEqual(rankLiveSpeeds(servers, 'upload').map(row => row.index), [2, 1])
+  assert.deepEqual(rankLiveSpeeds(servers, 'download').map(row => row.index), [3, 1])
+  assert.equal(rankLiveSpeeds(servers, 'upload')[0].download, undefined)
+  assert.deepEqual(rankLiveSpeeds([]), [])
+})
 
 test('traffic popover shows seven calendar days ending today, never seven old records', () => {
   const result = trafficWeek({ daily_traffic: [
