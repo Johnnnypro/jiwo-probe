@@ -55,7 +55,25 @@ test('luminaplus-paper is a palette of LuminaPlus, with case-insensitive control
     assert.equal(canonicalThemeOverride(input), 'luminaplus-paper')
   }
   assert.equal(parseThemeName('lumina-paper').paper, undefined)
+  assert.deepEqual(parseThemeName('luminaplus-paper-dark'), { theme: 'luminaplus', gold: false, platinum: false, light: false, paper: true })
+  assert.equal(canonicalThemeOverride('LuminaPlus Paper Light'), 'luminaplus-paper-light')
   assert.equal(parseThemeName('luminaplus').paper, undefined)
+})
+
+test('luminaplus-mint 及 -light / -dark 是 LuminaPlus 的配色，名称不分大小写', () => {
+  const cases = [
+    ['luminaplus-mint', 'luminaplus-mint', { mint: true }],
+    ['LuminaPlus_Mint', 'luminaplus-mint', { mint: true }],
+    ['luminaplus-mint-light', 'luminaplus-mint-light', { light: true, mint: true }],
+    [' Lumina Plus Mint Dark ', 'luminaplus-mint-dark', { light: false, mint: true }],
+  ]
+  for (const [input, canonical, flags] of cases) {
+    assert.deepEqual(parseThemeName(input), { theme: 'luminaplus', gold: false, platinum: false, ...flags })
+    assert.equal(isBuiltinTheme(input), true)
+    assert.equal(canonicalThemeOverride(input), canonical)
+  }
+  assert.equal(parseThemeName('lumina-mint').mint, undefined)
+  assert.equal(parseThemeName('ran-mint').theme, 'ran-mint', 'Ran 的 mint 变体不受影响')
 })
 
 test('Lite supports automatic, light and dark master names', () => {

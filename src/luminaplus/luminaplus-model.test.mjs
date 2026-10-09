@@ -2,32 +2,58 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { trafficWeek, trafficPopoverPosition } from './luminaplus-traffic.ts'
 import { rankLiveSpeeds, rankPeriodTraffic } from './luminaplus-model.ts'
-import { nextLuminaPlusColor, resolveLuminaPlusColor } from './luminaplus-color.ts'
+import { nextLuminaPlusMode, nextLuminaPlusPalette, resolveLuminaPlusAppearance as resolve, splitLegacyLuminaPlusColor } from './luminaplus-color.ts'
 
-test('LuminaPlus cycles exactly three palettes and manual selection takes priority', () => {
-  assert.equal(nextLuminaPlusColor('light'), 'dark')
-  assert.equal(nextLuminaPlusColor('dark'), 'paper')
-  assert.equal(nextLuminaPlusColor('paper'), 'light')
-  for (const saved of ['light', 'dark', 'paper']) {
-    assert.equal(resolveLuminaPlusColor({ saved, paper: true, legacy: 'gold', hour: 23 }), saved)
+const look = (palette, mode) => ({ palette, mode })
+
+test('配色按钮按 经典 → Paper → Mint 循环，与明暗无关', () => {
+  assert.equal(nextLuminaPlusPalette('classic'), 'paper')
+  assert.equal(nextLuminaPlusPalette('paper'), 'mint')
+  assert.equal(nextLuminaPlusPalette('mint'), 'classic')
+})
+
+test('明暗按钮按 浅色 → 深色 → 自动 循环；自动按北京时间切换，并覆盖主控固定的明暗', () => {
+  assert.equal(nextLuminaPlusMode('light'), 'dark')
+  assert.equal(nextLuminaPlusMode('dark'), 'auto')
+  assert.equal(nextLuminaPlusMode('auto'), 'light')
+  for (const [hour, mode] of [[0, 'dark'], [5, 'dark'], [6, 'light'], [12, 'light'], [17, 'light'], [18, 'dark'], [23, 'dark']]) {
+    assert.deepEqual(resolve({ savedPalette: 'paper', savedMode: 'auto', paper: true, light: true, hour }), look('paper', mode), `${hour} 点`)
+    assert.deepEqual(resolve({ savedMode: 'auto', legacyColor: 'mint-dark', legacy: 'dark', hour }), look('mint', mode), `旧设置不影响自动：${hour} 点`)
   }
 })
 
-test('Paper stays warm throughout the day and explicit follow-controller ignores legacy choices', () => {
-  for (const hour of [0, 6, 12, 18, 23]) {
-    assert.equal(resolveLuminaPlusColor({ paper: true, legacy: 'dark', hour }), 'paper')
-    assert.equal(resolveLuminaPlusColor({ saved: 'auto', paper: true, hour }), 'paper')
-    assert.equal(resolveLuminaPlusColor({ saved: 'auto', light: true, legacy: 'dark', hour }), 'light')
-    assert.equal(resolveLuminaPlusColor({ saved: 'auto', light: false, legacy: 'light', hour }), 'dark')
-  }
+test('访客手动选的配色、明暗各自优先，没选的一项跟随主控', () => {
+  assert.deepEqual(resolve({ savedPalette: 'paper', savedMode: 'dark', mint: true, light: true, hour: 12 }), look('paper', 'dark'))
+  assert.deepEqual(resolve({ savedPalette: 'mint', mint: false, light: false, hour: 12 }), look('mint', 'dark'), '只选了配色：明暗跟随主控')
+  assert.deepEqual(resolve({ savedMode: 'dark', paper: true, light: true, hour: 12 }), look('paper', 'dark'), '只选了明暗：配色跟随主控')
+  assert.deepEqual(resolve({ savedPalette: 'bogus', savedMode: 'bogus', hour: 12 }), look('classic', 'light'))
 })
 
-test('LuminaPlus retains legacy modes and normal automatic light/dark boundaries', () => {
-  for (const legacy of ['dark', 'gold']) assert.equal(resolveLuminaPlusColor({ legacy, hour: 12 }), 'dark')
-  for (const legacy of ['light', 'platinum']) assert.equal(resolveLuminaPlusColor({ legacy, hour: 23 }), 'light')
-  for (const saved of [undefined, null, 'invalid', 'auto']) {
+test('旧版合并值（light / dark / paper / mint / mint-dark）拆成配色与明暗继续生效', () => {
+  assert.deepEqual(splitLegacyLuminaPlusColor('mint-dark'), look('mint', 'dark'))
+  assert.deepEqual(splitLegacyLuminaPlusColor('auto'), {})
+  for (const [legacyColor, expected] of [['light', look('classic', 'light')], ['dark', look('classic', 'dark')], ['paper', look('paper', 'light')], ['mint', look('mint', 'light')], ['mint-dark', look('mint', 'dark')]]) {
+    assert.deepEqual(resolve({ legacyColor, mint: true, legacy: 'gold', hour: 23 }), expected, legacyColor)
+  }
+  assert.deepEqual(resolve({ legacyColor: 'mint-dark', savedPalette: 'paper', hour: 12 }), look('paper', 'dark'), '新设置覆盖旧值的同一项')
+})
+
+test('主控 Paper 沿用固定浅色，-dark 后缀为 Paper Night；Mint 无后缀按北京时间切换', () => {
+  for (const hour of [0, 12, 23]) assert.deepEqual(resolve({ paper: true, light: true, legacy: 'dark', hour }), look('paper', 'light'))
+  assert.deepEqual(resolve({ paper: true, light: false, hour: 12 }), look('paper', 'dark'))
+  for (const hour of [6, 12, 17]) assert.deepEqual(resolve({ mint: true, hour }), look('mint', 'light'))
+  for (const hour of [0, 5, 18, 23]) assert.deepEqual(resolve({ mint: true, hour }), look('mint', 'dark'))
+  assert.deepEqual(resolve({ mint: true, legacy: 'dark', hour: 12 }), look('mint', 'light'), '其他主题的旧深色设置不影响 Mint')
+})
+
+test('经典配色沿用旧全局深色设置；明确跟随主控后不再参考；无设置按北京时间切换', () => {
+  for (const legacy of ['dark', 'gold']) assert.deepEqual(resolve({ legacy, hour: 12 }), look('classic', 'dark'))
+  for (const legacy of ['light', 'platinum']) assert.deepEqual(resolve({ legacy, hour: 23 }), look('classic', 'light'))
+  assert.deepEqual(resolve({ legacyColor: 'auto', legacy: 'dark', hour: 12 }), look('classic', 'light'))
+  assert.deepEqual(resolve({ legacyColor: 'auto', light: false, legacy: 'light', hour: 12 }), look('classic', 'dark'))
+  for (const legacyColor of [undefined, null, 'invalid', 'auto']) {
     for (const [hour, expected] of [[0, 'dark'], [5, 'dark'], [6, 'light'], [17, 'light'], [18, 'dark'], [23, 'dark']]) {
-      assert.equal(resolveLuminaPlusColor({ saved, hour }), expected)
+      assert.deepEqual(resolve({ legacyColor, hour }), look('classic', expected))
     }
   }
 })

@@ -4,7 +4,7 @@ import type { ProbeAppearance, ProbeBackgroundAppearance, ProbePayload, ProbeSer
 import { DEFAULT_PING_GROUP_CONFIG, parsePingGroupConfig, type PingGroupConfig } from './ping-groups'
 import { DEFAULT_NETWORK_SPEED_UNIT, parseNetworkSpeedUnit, type NetworkSpeedUnit } from './network-speed'
 import { canonicalThemeOverride, parseThemeName } from './theme-name'
-import { LUMINAPLUS_COLOR_KEY, resolveLuminaPlusColor, type LuminaPlusColor } from './luminaplus/luminaplus-color'
+import { isLuminaPlusModeSetting, LUMINAPLUS_COLOR_KEY, LUMINAPLUS_MODE_KEY, LUMINAPLUS_PALETTE_KEY, resolveLuminaPlusAppearance, type LuminaPlusModeSetting, type LuminaPlusPalette } from './luminaplus/luminaplus-color'
 import { DEFAULT_SHOW_CONNECTION_CHART, parseShowConnectionChart } from './connection-chart'
 import { applyProbeDelta, isProbeDeltaFrame } from './probe-delta'
 export { isBuiltinTheme, parseThemeName } from './theme-name'
@@ -217,16 +217,19 @@ export function applyAppearance(input?: ProbeAppearance) {
   let gold = false
   let platinum = false
   let paper = false
+  let mint = false
   // premium 配色三态(auto/白金/黑金, 由 PremiumProbePage 控制 localStorage premium-probe-color-mode):
   // applyAppearance 在 WS/轮询每帧(5s)都会跑, 必须尊重三态, 否则 remove('platinum') 会冲掉
   // auto/手动白金类造成白金黑金横跳(2026-08-17 用户实测)
   if (theme === 'luminaplus') {
-    const mode = resolveLuminaPlusColor({
-      saved: localStorage.getItem(LUMINAPLUS_COLOR_KEY), paper: parsed.paper, light: parsed.light,
+    const look = resolveLuminaPlusAppearance({
+      savedPalette: localStorage.getItem(LUMINAPLUS_PALETTE_KEY), savedMode: localStorage.getItem(LUMINAPLUS_MODE_KEY),
+      legacyColor: localStorage.getItem(LUMINAPLUS_COLOR_KEY), paper: parsed.paper, mint: parsed.mint, light: parsed.light,
       legacy: darkOverride, hour: (new Date().getUTCHours() + 8) % 24,
     })
-    dark = mode === 'dark'
-    paper = mode === 'paper'
+    dark = look.mode === 'dark'
+    paper = look.palette === 'paper'
+    mint = look.palette === 'mint'
   } else if (theme === 'premium') {
     const premiumMode = localStorage.getItem('premium-probe-color-mode')
     if (premiumMode === 'platinum') {
@@ -280,6 +283,7 @@ export function applyAppearance(input?: ProbeAppearance) {
   root.classList.toggle('gold', gold)
   root.classList.toggle('platinum', platinum)
   root.classList.toggle('lp-paper', paper)
+  root.classList.toggle('lp-mint', mint)
   // Glassmorphism 明暗下发: 写 master 缓存, GmApp 初始化/轮询时读取(用户手动切换优先)
   // 无后缀 glassmorphism = auto 模式(北京时间白天浅色/夜间深色); light/dark 后缀固定对应模式
   if (theme === 'glassmorphism') {
@@ -294,8 +298,29 @@ export function getDarkOverride(): string | null {
   return localStorage.getItem(DARK_OVERRIDE)
 }
 
-export function setLuminaPlusColorMode(mode: LuminaPlusColor | 'auto') {
-  localStorage.setItem(LUMINAPLUS_COLOR_KEY, mode)
+/** 访客当前的明暗选择（浅 / 深 / 自动）；没选过返回 null，表示跟随主控。 */
+export function getLuminaPlusModeSetting(): LuminaPlusModeSetting | null {
+  try {
+    const saved = localStorage.getItem(LUMINAPLUS_MODE_KEY)
+    return isLuminaPlusModeSetting(saved) ? saved : null
+  } catch {
+    return null
+  }
+}
+
+/** 访客手动选择 LuminaPlus 的配色与明暗：两项一起记下，旧版合并值不再使用。 */
+export function setLuminaPlusAppearance(next: { palette: LuminaPlusPalette; mode: LuminaPlusModeSetting }) {
+  localStorage.setItem(LUMINAPLUS_PALETTE_KEY, next.palette)
+  localStorage.setItem(LUMINAPLUS_MODE_KEY, next.mode)
+  localStorage.removeItem(LUMINAPLUS_COLOR_KEY)
+  applyAppearance()
+}
+
+/** 配色与明暗都恢复跟随主控（同时不再参考其他主题留下的旧深色设置）。 */
+export function followControllerLuminaPlusAppearance() {
+  localStorage.removeItem(LUMINAPLUS_PALETTE_KEY)
+  localStorage.removeItem(LUMINAPLUS_MODE_KEY)
+  localStorage.setItem(LUMINAPLUS_COLOR_KEY, 'auto')
   applyAppearance()
 }
 
