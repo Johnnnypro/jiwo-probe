@@ -68,6 +68,13 @@ export function buildDemoPayload({ theme = 'luminaplus', now = Date.now() } = {}
       const uplink = total * between(0.3, 0.5)
       return { date: isoDay(now - (6 - d) * DAY), uplink: Math.round(uplink), downlink: Math.round(total - uplink), total: Math.round(total) }
     })
+    // 主控最多保存 30 天每日流量，各台天数不同：前几台往前补更早的日子（固定公式，不消耗随机数，其余演示数值不变）
+    const extraDays = [23, 14, 7][index] ?? 0
+    days.unshift(...Array.from({ length: extraDays }, (_, d) => {
+      const total = (used / 18) * (0.7 + 0.5 * Math.abs(Math.sin(index * 7 + d)))
+      const uplink = total * 0.4
+      return { date: isoDay(now - (6 + extraDays - d) * DAY), uplink: Math.round(uplink), downlink: Math.round(total - uplink), total: Math.round(total) }
+    }))
     const [cycle, currency, price] = CYCLES[index % CYCLES.length]
     const expires = now + Math.round(between(-2, 340)) * DAY
     const memTotal = [1, 2, 4, 8, 16][index % 5] * GB
@@ -97,7 +104,7 @@ export function buildDemoPayload({ theme = 'luminaplus', now = Date.now() } = {}
       daily_traffic: days,
       daily_traffic_scope: 'configured_period_and_recent_7d',
       daily_traffic_start: days[0].date,
-      daily_traffic_end: days[6].date,
+      daily_traffic_end: days[days.length - 1].date,
       boot_traffic_up: Math.round(up * 1.4),
       boot_traffic_down: Math.round((used - up) * 1.4),
       boot_traffic_scope: 'current_boot',
@@ -186,7 +193,7 @@ export function buildDemoPayload({ theme = 'luminaplus', now = Date.now() } = {}
       ],
       trend: trend(46),
       speed_up: 1_820_000, speed_down: 9_640_000, jitter_ms: 1.4,
-      availability_24h: 0.9986, cells: day24([18, 19, 'w']),
+      availability_24h: 0.9986, cells: day24([18, 19, 'd']),
       traffic: traffic([['HKG-Edge-01', '入口组', 'entry', 18], ['TPE-Line-08', '入口组', 'entry', 7], ['SEL-Game-07', '中转组', 'mid', 15], ['SIN-Relay-03', '中转组', 'mid', 6], ['TYO-Core-02', '出口组', 'exit', 0]]),
     },
     {
@@ -218,7 +225,7 @@ export function buildDemoPayload({ theme = 'luminaplus', now = Date.now() } = {}
       ],
       trend: trend(162, (i) => [i >= 7 ? 168 : 158, i >= 7 ? 8.3 : 0]),
       speed_up: 41_000, speed_down: 188_000, jitter_ms: 12.6,
-      availability_24h: 0.9583, cells: day24([40, 43, 'd'], [64, 72, 'w']),
+      availability_24h: 0.9583, cells: day24([40, 43, 'b'], [64, 72, 'd']),
       traffic: traffic([['SIN-Relay-03', '入口组', 'entry', 4], ['HKG-Edge-01', '入口组', 'entry', 2], ['FRA-Store-05', '出口组', 'exit', 0]]),
     },
     {
@@ -232,7 +239,7 @@ export function buildDemoPayload({ theme = 'luminaplus', now = Date.now() } = {}
       ],
       trend: trend(0, (i) => (i < 5 ? [24, 0] : [0, 100])),
       speed_up: 0, speed_down: 0, jitter_ms: 0,
-      availability_24h: 0.3125, cells: day24([0, 6, 'n'], [28, 72, 'd']),
+      availability_24h: 0.3125, cells: day24([0, 6, 'n'], [28, 72, 'b']),
       traffic: traffic([['AMS-Back-09', '入口组', 'entry', 0.2], ['PAR-Test-10', '中转组', 'mid', 0], ['LON-Edge-06', '出口组', 'exit', 0]]),
     },
   ]
