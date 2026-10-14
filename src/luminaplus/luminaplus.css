@@ -318,6 +318,12 @@
 .lp-hardware { color: var(--lp-accent); background: color-mix(in srgb,var(--lp-accent) 9%,var(--lp-surface)); }
 .lp-price, .lp-badges > .lp-price { color: var(--lp-green); border: 1px solid color-mix(in srgb,var(--lp-green) 25%,var(--lp-border)); background: color-mix(in srgb,var(--lp-green) 6%,var(--lp-surface)); font-weight: 600; }
 .lp-price svg { flex-shrink: 0; }
+/* 外币原价跟在人民币价后面，弱化显示 */
+.lp-price-original { font-size: inherit; font-weight: 500; color: var(--lp-muted); white-space: nowrap; }
+.lp-price .lp-price-original::before { content: "·"; margin: 0 4px; }
+/* 小卡片计费格太窄，原价单独占一行靠右 */
+.lp-info-price .lp-price-original { display: block; font-size: 8px; line-height: 1; }
+.lp-info-price strong:has(.lp-price-original) { line-height: 1.2; }
 .lp-empty { grid-column: 1/-1; padding: 60px 20px; text-align: center; color: var(--lp-muted); }
 .lp-empty h3 { font-size: 16px; margin: 12px 0 8px; color: var(--lp-text); }
 .lp-empty p { font-size: 13px; }

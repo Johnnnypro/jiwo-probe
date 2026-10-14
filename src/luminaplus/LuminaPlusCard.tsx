@@ -66,14 +66,15 @@ function LuminaPlusCard({ server, index, view, trail }: { server: ProbeServer; i
   const age = validNumber(server.uptime) === undefined ? '—' : server.uptime! >= 86400 ? `${Math.floor(server.uptime! / 86400)} 天` : `${Math.floor(server.uptime! / 3600)} 时`
   const permanent = isPermanent(server)
   const cycle = CYCLE_LABELS[server.renewal_cycle || 'month']
-  // 主控折算好的人民币价优先（与顶部资产统计同一口径），外币原价放进悬停说明；没有折算时照旧显示原币种
+  // 主控折算好的人民币价优先（与顶部资产统计同一口径），外币原价跟在后面；没有折算时照旧显示原币种
   const currency = server.renewal_currency?.trim().toUpperCase() || 'CNY'
   const cny = validNumber(server.renewal_price_cny)
   const original = validNumber(server.renewal_price)
   const amount = cny ?? original
   const unit = cny !== undefined || currency === 'CNY' ? '¥' : currency
   const price = amount === undefined ? undefined : `${unit === '¥' ? '¥' : `${unit} `}${amount.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} / ${cycle}`
-  const priceTitle = price && cny !== undefined && original !== undefined && currency !== 'CNY' ? `${price}（原价 ${currency} ${original.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}）` : price
+  const originalPrice = cny !== undefined && original !== undefined && currency !== 'CNY' ? `${currency} ${original.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}` : undefined
+  const priceTitle = price && originalPrice ? `${price}（原价 ${originalPrice}）` : price
   const compactPrice = amount === undefined ? '—' : `${unit}${amount.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 2 })}/${cycle}`
   const remainingDays = permanent ? '永久' : days === undefined ? '—' : days < 0 ? `已过期 ${Math.abs(days)} 天` : days === 0 ? '今天到期' : `${days} 天`
   const directions = (['upload', 'download'] as const).map(direction => ({
@@ -106,7 +107,7 @@ function LuminaPlusCard({ server, index, view, trail }: { server: ProbeServer; i
       <a href={`#/server/${index}`} className="lp-name" title={`${name} · 查看详情`}><i className="lp-status" aria-label={server.online ? '在线' : '离线'} />{flag && <Twemoji>{flag}</Twemoji>}<h2>{name}</h2></a>
       <div className="lp-card-actions"><UnlockButton server={server} /><LuminaPlusTrafficPopover server={server} name={name} /><span className="lp-os" title={server.os || '系统未上报'}><SystemIcon server={server} /></span></div>
     </header>
-    <div className="lp-badges"><span title={country || '地区未上报'}>{country || '地区未知'}</span>{view !== 'mini' && server.provider_name && <span title={server.provider_name}>{server.provider_name}</span>}{view !== 'mini' && <span className={`lp-state-badge ${server.online ? 'is-online' : ''}`}>{server.online ? '在线' : '离线'}</span>}{view !== 'compact' && price && <span className="lp-price" title={priceTitle}><Wallet size={13} />{price}</span>}</div>
+    <div className="lp-badges"><span title={country || '地区未上报'}>{country || '地区未知'}</span>{view !== 'mini' && server.provider_name && <span title={server.provider_name}>{server.provider_name}</span>}{view !== 'mini' && <span className={`lp-state-badge ${server.online ? 'is-online' : ''}`}>{server.online ? '在线' : '离线'}</span>}{view !== 'compact' && price && <span className="lp-price" title={priceTitle}><Wallet size={13} />{price}{originalPrice && <small className="lp-price-original">{originalPrice}</small>}</span>}</div>
     <div className="lp-resources">{resources.map(item => <div key={item.label} {...(RESOURCE_TREND[item.label] ? { className: 'lp-resource lp-trend-trigger', ...trendTrigger(RESOURCE_TREND[item.label], item.label) } : { className: 'lp-resource' })}>
       <div className="lp-resource-label"><span><item.Icon size={15} />{item.label}</span><strong>{item.value}</strong></div>
       <p title={item.note}>{item.note}</p><SegmentMeter value={item.percent} tone={item.tone} label={item.label === '负载' ? '每核归一化负载' : item.label} />
@@ -128,7 +129,7 @@ function LuminaPlusCard({ server, index, view, trail }: { server: ProbeServer; i
         return <span key={direction} className={`lp-info-speed lp-${direction}`} title={`${label}实时速度`}><Icon size={11} /><strong className="lp-speed-tone" data-tone={speedTone(value)}>{amount}<small>{unit}</small></strong></span>
       })}<SpeedPulse samples={combinedSpeedTrail(trail)} value={validNumber(server.upload_speed) !== undefined && validNumber(server.download_speed) !== undefined ? server.upload_speed! + server.download_speed! : undefined} online={server.online} /></div>
       <div className="lp-info-tile lp-info-totals lp-trend-trigger" {...trendTrigger('traffic', '日流量')} aria-label="周期流量，点击查看日流量趋势">{directions.map(({ direction, Icon, label, total }) => <span key={direction} title={`本周期${label}流量`}><Icon size={11} /><strong>{size(total)}</strong></span>)}</div>
-      <div className="lp-info-tile lp-info-billing" role="group" aria-label="剩余天数与续费费用"><span className="lp-info-expiry" title={permanent ? '永久买断，无到期日' : `到期日期：${expiryDate || '未设置'} · ${remainingDays}`}><CalendarDays size={11} /><strong>{permanent ? '永久' : days === undefined ? '—' : days > 0 ? `余 ${days}天` : remainingDays}</strong></span><span className="lp-info-price" title={priceTitle || '续费价格未设置'}><Wallet size={11} /><strong>{compactPrice}</strong></span></div>
+      <div className="lp-info-tile lp-info-billing" role="group" aria-label="剩余天数与续费费用"><span className="lp-info-expiry" title={permanent ? '永久买断，无到期日' : `到期日期：${expiryDate || '未设置'} · ${remainingDays}`}><CalendarDays size={11} /><strong>{permanent ? '永久' : days === undefined ? '—' : days > 0 ? `余 ${days}天` : remainingDays}</strong></span><span className="lp-info-price" title={priceTitle || '续费价格未设置'}><Wallet size={11} /><strong>{compactPrice}{originalPrice && <small className="lp-price-original">{originalPrice}</small>}</strong></span></div>
       <div className="lp-info-tile" role="group" aria-label="连接数"><LuminaPlusConnections server={server} /></div>
     </section> : <section className="lp-mini-network" aria-label="实时速度、周期流量与连接数">
       {directions.map(({ direction, Icon, label, value, total }) => <div className="lp-mini-flow" key={direction}>
