@@ -86,6 +86,8 @@
 .lp-app :is(button, select) { cursor: pointer; }
 /* 卡片上可点开趋势图的项目（CPU / 内存 / 磁盘 / 流量）：保留原元素与布局，只加指针、悬停强调色与键盘焦点框 */
 .lp-app .lp-trend-trigger { cursor: pointer; border-radius: 6px; }
+/* 自带分隔线的格子（信息条的累计流量格、流量额度块）保持直角，否则边框两端会被圆角弯掉 */
+.lp-app :is(.lp-info-tile, .lp-quota).lp-trend-trigger { border-radius: 0; }
 .lp-app .lp-trend-trigger:hover :is(strong, b) { color: var(--lp-accent); }
 .lp-app .lp-trend-trigger:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 3px; }
 .lp-app :is(button, a, input, select):focus-visible, :root.theme-luminaplus .mini-detail-dialog :is(button, a, select, [tabindex]):focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 3px; }
