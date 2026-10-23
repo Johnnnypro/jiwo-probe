@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { buildGlobeRegions, globeCountryCode } from './globe-regions.ts'
+import { buildGlobeRegions, globeCountryCode, regionGroupLabel } from './globe-regions.ts'
 import { CITY_REGION_COORDINATES, GLOBE_CENTER, GLOBE_RADIUS, LABEL_MIN_GAP, layoutOrbit, MAX_ORBIT_LABELS } from './orbit-layout.ts'
 
 const region = code => ({ code, label: code, total: 1, online: 1 })
@@ -62,7 +62,7 @@ test('跟随上游 d26cf7b：环上标签上限按最小间隔计算，9 个地�
   assert.doesNotMatch(readFileSync(new URL('./PremiumProbePage.tsx', import.meta.url), 'utf8'), /regions\.slice\(0, 7\)/)
 })
 
-test('通用和 Glassmorphism 地球复用 Premium 新组件，不再保留旧渲染副本', () => {
+test('Emerald 和 Glassmorphism 地球复用 Premium 新组件，不再保留旧渲染副本', () => {
   for (const path of ['./RegionGlobe.tsx', './glassmorphism/GmEarth.tsx']) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8')
     assert.match(source, /<BlackGoldGlobe/)
@@ -71,4 +71,19 @@ test('通用和 Glassmorphism 地球复用 Premium 新组件，不再保留旧�
   const source = readFileSync(new URL('./BlackGoldGlobe.tsx', import.meta.url), 'utf8')
   assert.match(source, /orbitLabels\.current\?\.update\(next\)/)
   assert.match(source, /y=\{boxY\}/)
+})
+
+test('地区分组标题：旗帜、代码、「代码 · 名称」都统一成「旗帜 中文名」，认不出的原样显示', () => {
+  assert.equal(regionGroupLabel('🇭🇰'), '🇭🇰 香港')
+  assert.equal(regionGroupLabel('JP'), '🇯🇵 日本')
+  assert.equal(regionGroupLabel('SG · Singapore'), '🇸🇬 新加坡')
+  assert.equal(regionGroupLabel('火星'), '火星')
+})
+
+test('经典主题改用主控同款地球（弧线 + 亮点旁旗帜与台数）', () => {
+  const app = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8')
+  assert.match(app, /import\('\.\/ProbeRegionGlobe'\)/)
+  const source = readFileSync(new URL('./ProbeRegionGlobe.tsx', import.meta.url), 'utf8')
+  assert.match(source, /<RegionArcs /)
+  assert.match(source, /<RegionLabels /)
 })
