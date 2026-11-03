@@ -19,6 +19,8 @@ jobs:
     # 纯 shell git 实现, 不依赖任何 action(避开 actions/checkout 在 Node24 runner 上的兼容问题)。
     if: github.repository != 'chnnic/jiwo-probe'
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Check out user repository
         run: |
