@@ -2864,12 +2864,49 @@
   border-radius: 0.75rem;
 }
 
+/* 四栏：左侧 Jiwo Probe 署名 | 居中的许可证勋章 + 动画开关 | 右侧主控署名。两侧等宽，勋章仍落在页面正中 */
 .premium-probe-footer {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr);
+  align-items: center;
   gap: 0.45rem;
   padding: 0 1rem 1.5rem;
+}
+.premium-probe-footer-credit.is-controller {
+  justify-self: end;
+}
+
+/* 两条署名是纯文字，不带边框；黑金下加一点投影，照片背景上也看得清 */
+.premium-probe-footer-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  justify-self: start;
+  min-height: 28px;
+  color: #e6dcc3;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.premium-probe-footer-credit a {
+  color: var(--pp-gold-bright);
+  font-weight: 650;
+  text-decoration: none;
+}
+.premium-probe-footer-credit a:hover {
+  color: #fff3d0;
+  text-decoration: underline;
+}
+/* 白金：深色字 + 浅色光晕，米白底和照片背景上都能读 */
+:root.theme-premium.platinum .premium-probe-footer-credit {
+  color: #4a3a1c;
+  text-shadow: 0 0 1px rgba(255, 250, 240, 0.95), 0 0 5px rgba(255, 250, 240, 0.85);
+}
+:root.theme-premium.platinum .premium-probe-footer-credit a {
+  color: #8a6a1c;
+}
+:root.theme-premium.platinum .premium-probe-footer-credit a:hover {
+  color: #5c4610;
 }
 
 .premium-probe-footer-badges {
@@ -3249,8 +3286,29 @@
     display: none;
   }
   /* 底部许可证: 单排横滚(替代三排换行) */
+  /* 手机：改回流式排布。两条署名在前（放不下时主控署名自己换到下一行靠右），
+     勋章横滚 + 开关固定占最后一行 */
   .premium-probe-footer {
-    flex-wrap: nowrap;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.4rem;
+  }
+  .premium-probe-footer-credit {
+    font-size: 0.68rem;
+  }
+  .premium-probe-footer-credit.is-controller {
+    order: 1;
+    margin-left: auto;
+  }
+  /* 勋章行不收缩，保证独占一行（只和开关同排）；特异性要压过下面的 flex: 1 */
+  .premium-probe-footer > .premium-probe-footer-badges {
+    order: 2;
+    flex: 1 0 calc(100% - 56px);
+  }
+  .premium-probe-footer .premium-probe-license-anim-toggle {
+    order: 3;
+    flex: 0 0 auto;
   }
   .premium-probe-footer-badges {
     flex: 1;

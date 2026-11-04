@@ -170,7 +170,7 @@ type PremiumProbePageProps = {
   isLoading: boolean
   isError: boolean
   // 主题切换回调（经典界面 ThemeSelect 同款语义: name=null 表示跟随主控）
-  onThemeChange?: (name: 'pixel' | 'flat' | 'anime' | 'glass' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | 'emerald' | 'lite' | 'luminaplus' | 'nezha' | null) => void
+  onThemeChange?: (name: 'pixel' | 'flat' | 'anime' | 'glass' | 'sweet' | 'meow' | 'lumina' | 'premium' | 'ran' | 'glassmorphism' | 'emerald' | 'lite' | 'luminaplus' | 'nezha' | null) => void
 }
 
 type StatusFilter = 'all' | 'online' | 'offline'
@@ -3411,6 +3411,7 @@ export function PremiumProbePage({
       )}
 
       <footer className='premium-probe-footer'>
+        <span className='premium-probe-footer-credit'>Powered by <a href='https://github.com/chnnic/jiwo-probe' target='_blank' rel='noreferrer'>Jiwo Probe</a></span>
         <div className='premium-probe-footer-badges'>
           {footerLicenseBadges(data?.license_badge).map((badge, index) => (
             <StandaloneLicenseBadge key={index} badge={badge} animated={licenseAnim} />
@@ -3426,6 +3427,7 @@ export function PremiumProbePage({
         >
           <Sparkles />
         </button>
+        <span className='premium-probe-footer-credit is-controller'>Powered by <a href='https://github.com/mmwx-group' target='_blank' rel='noreferrer'>MMWX Group</a></span>
       </footer>
     </div>
   )

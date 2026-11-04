@@ -107,11 +107,16 @@ export function CardPingGroups({ ping = [], serverIndex, serverName, variant, av
         const open = (mode: Mode) => group.target && setTrend({ key: targetKey, label: group.target.label, mode })
         const loss = current?.loss_pct
         return <section className="card-ping-group" key={index} aria-label={`${name} 第 ${index + 1} 组延迟与丢包`} data-target={targetKey} data-fallback={group.fallback}>
+          {/* 表头与下面两条色块条同一套两列：两列都是左标签右数值：延迟值在延迟条末端上方，丢包率数值在丢包条末端上方 */}
           <div className="card-ping-row">
-            <span className="card-ping-selector"><Clock size={13} aria-hidden="true" />{averageOnly ? <span>平均延迟</span> : selectFor(group, index)}</span>
-            <strong>{valueText('latency', current?.current_ms, !!current)}</strong>
-            <span className={`card-ping-loss${loss !== undefined && loss > 0 ? ' warning' : ''}`}>丢包 {valueText('loss', loss, !!current)}</span>
-            {!averageOnly && index === 0 && overrides.some(Boolean) && <button type="button" className="card-ping-reset" title="恢复后台默认目标" aria-label={`${name} 恢复后台默认目标`} onClick={event => { event.stopPropagation(); update([]) }}><RotateCcw size={11} /></button>}
+            <div className="card-ping-row-main">
+              <span className="card-ping-selector"><Clock size={13} aria-hidden="true" />{averageOnly ? <span>平均延迟</span> : selectFor(group, index)}</span>
+              <strong>{valueText('latency', current?.current_ms, !!current)}</strong>
+            </div>
+            <div className="card-ping-row-side">
+              {!averageOnly && index === 0 && overrides.some(Boolean) && <button type="button" className="card-ping-reset" title="恢复后台默认目标" aria-label={`${name} 恢复后台默认目标`} onClick={event => { event.stopPropagation(); update([]) }}><RotateCcw size={11} /></button>}
+              <span className={`card-ping-loss${loss !== undefined && loss > 0 ? ' warning' : ''}`}><span><Unplug size={13} aria-hidden="true" />丢包率</span><strong>{valueText('loss', loss, !!current)}</strong></span>
+            </div>
           </div>
           <div className="card-ping-bar-pair">
             {(['latency', 'loss'] as const).map(kind => <button type="button" key={kind} className="card-ping-trend" disabled={!current}
