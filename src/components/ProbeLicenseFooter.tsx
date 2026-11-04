@@ -19,7 +19,7 @@ export function ProbeLicenseNameplate({ name, displayName, animated = true }: { 
     const shine = shineRef.current
     if (!plate || !text || !stars || !shine) return
 
-    const palette = document.documentElement.classList.contains('platinum')
+    const palette = document.documentElement.classList.contains('platinum') && !plate.closest('.probe-license-footer')
       ? ['#8c5d17', '#d7a63d', '#f2d78a', '#fff1b9', '#c78e24']
       : ['#f2d28b', '#d8b46a', '#e0b96e', '#f5c542', '#f3ecdc']
     const random = (min: number, max: number) => min + Math.random() * (max - min)

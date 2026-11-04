@@ -4120,13 +4120,6 @@ footer a:hover {
   );
 }
 
-/* 黑金: 许可证徽章金色化(替代默认砖橙/棕) */
-:root.theme-lumina.gold .probe-license-nameplate {
-  border-color: rgba(216, 180, 106, 0.45);
-  background: linear-gradient(135deg, #1e2018 0%, #2a2a1e 48%, #14160f 100%);
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  color: #f2d28b;
-}
 /* 黑金: 页面角落金色光斑(premium 背景 radial-gradient 移植, 滚动时固定视口) */
 :root.theme-lumina.gold .app-shell {
   background-image:
@@ -4284,16 +4277,6 @@ footer a:hover {
   color: #fffdf8;
   background: linear-gradient(90deg, #8f651d, #e5c367);
   border-color: #a87c22;
-}
-/* 白金: 许可证铭牌照主控白金原色(深棕金渐变+浅金字, 替代浅色化 — 主控 theme-premium light 实测, 2026-08-17) */
-:root.theme-lumina.platinum .probe-license-nameplate {
-  border-color: #b47a1c;
-  background: linear-gradient(100deg, #4a300d, #d7a63d 48%, #6b4712);
-  box-shadow: 0 0 16px -7px #d7a63d;
-  color: #fff4cb;
-}
-:root.theme-lumina.platinum .probe-license-nameplate .probe-license-text {
-  text-shadow: 0 1px #4b3009;
 }
 /* 白金: 页面角落金色光斑(浅底版) */
 :root.theme-lumina.platinum .app-shell {
