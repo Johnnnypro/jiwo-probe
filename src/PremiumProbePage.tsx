@@ -9,7 +9,7 @@ import type { ForwardChainData, ForwardChainTraffic, ForwardTrafficServer, Forwa
 import { Twemoji } from './Twemoji'
 import { PasskeyLogin } from './PasskeyLogin'
 import { getThemeOverride, parseThemeName } from './use-probe'
-import { EXTRA_LICENSE_BADGES, HEADER_LICENSE_BADGES } from './license-badges'
+import { footerLicenseBadges, HEADER_LICENSE_BADGES } from './license-badges'
 import { FLAG_OPTIONS } from './country-flag'
 import { displayServerName } from './server-name'
 import { dailyTrafficRows, hasMoreDailyTraffic, hasTrafficPeriod, trafficPeriodText, trafficRuleLabel, type TrafficRange } from './traffic-display'
@@ -3412,15 +3412,9 @@ export function PremiumProbePage({
 
       <footer className='premium-probe-footer'>
         <div className='premium-probe-footer-badges'>
-          {(() => {
-            // 与经典界面 Footer 同款去重: 本地 EXTRA 为主, 主控同名勋章覆盖, 其余主控勋章追加
-            const live = data?.license_badge ? (Array.isArray(data.license_badge) ? data.license_badge : [data.license_badge]) : []
-            const keyOf = (badge: { name?: string; display_name?: string }) => badge.name || badge.display_name || ''
-            const merged = EXTRA_LICENSE_BADGES.map((badge) => live.find((item) => keyOf(item) === keyOf(badge)) || badge)
-            const extras = live.filter((badge) => !EXTRA_LICENSE_BADGES.some((item) => keyOf(item) === keyOf(badge)))
-            const list = [...merged, ...extras].filter((badge, index, all) => all.findIndex((item) => keyOf(item) === keyOf(badge)) === index)
-            return list.map((badge, index) => <StandaloneLicenseBadge key={index} badge={badge} animated={licenseAnim} />)
-          })()}
+          {footerLicenseBadges(data?.license_badge).map((badge, index) => (
+            <StandaloneLicenseBadge key={index} badge={badge} animated={licenseAnim} />
+          ))}
         </div>
         <button
           type='button'

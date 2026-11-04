@@ -74,6 +74,12 @@
 :root.theme-luminaplus body { margin: 0; background: var(--lp-page); color: var(--lp-text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
 :root.theme-luminaplus body::before, :root.theme-luminaplus body::after { display: none; }
 :root.theme-luminaplus .lp-app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--lp-page); color: var(--lp-text); }
+:root.theme-luminaplus.probe-custom-background .lp-app { isolation: isolate; }
+:root.theme-luminaplus.probe-custom-background .lp-app::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  --lp-wallpaper-shade: color-mix(in srgb, var(--lp-page) var(--probe-background-overlay-percent, 32%), transparent);
+  background: linear-gradient(var(--lp-wallpaper-shade), var(--lp-wallpaper-shade)), var(--probe-background-image) var(--probe-background-position, center) / cover no-repeat;
+}
 .lp-app *, :root.theme-luminaplus .mini-detail-dialog * { box-sizing: border-box; }
 .lp-app :is(h1,h2,h3,p) { margin: 0; }
 .lp-app :is(.lp-brand h1,.lp-section-title h2,.lp-name h2),

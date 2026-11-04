@@ -14,7 +14,15 @@ const current = bindings => args => args[0] === 'deployments'
   : { resources: { bindings } }
 
 test('installer reads shared ping, speed and connection chart defaults and creates actual Text bindings', async () => {
-  assert.deepEqual(await readScriptDefaults(), defaults)
+  const siteDefaults = await readScriptDefaults()
+  const background = {
+    PROBE_BACKGROUND_URL: '/images/status-wallpaper.jpg',
+    PROBE_BACKGROUND_OVERLAY: '0.01',
+    PROBE_BACKGROUND_POSITION: 'center',
+    PROBE_BACKGROUND_THEMES: 'pixel,flat,anime,glass,lumina,luminaplus,premium,ran,glassmorphism,emerald',
+  }
+  assert.deepEqual(siteDefaults, { ...defaults, ...background })
+  assert.deepEqual(missingPingVars(siteDefaults, Object.keys(background).map(name => ({ name }))), defaults)
   assert.deepEqual(deployArgs(defaults), ['deploy', '--keep-vars',
     '--var', 'PROBE_PING_GROUP_COUNT:3',
     '--var', 'PROBE_PING_DEFAULT_TARGETS:平均延迟，内地延迟，海外延迟',
