@@ -261,6 +261,8 @@ function edgeCache(): Cache {
   return (caches as CloudflareCacheStorage).default
 }
 
+const PROVIDER_LOGO_PATH = /^\/api\/provider-logo\/([0-9]{1,10}\.[0-9a-f]{6,64}\.png)$/
+
 const routes: Record<string, string> = {
   '/api/probe': '/api/public/probe-servers',
   '/api/series': '/api/public/probe-series',
@@ -857,6 +859,34 @@ export default {
 
     if (authRoutes.has(incoming.pathname)) {
       return proxyAuth(request, incoming, env)
+    }
+
+    // 服务商 logo（上游 47ae510）：转发主控缓存的图片。公开且不敏感，不带 PROBE_TOKEN；
+    // 文件名带内容哈希（换图即换名），可以长期缓存。只认这种文件名，别的路径不转发。
+    const logo = incoming.pathname.match(PROVIDER_LOGO_PATH)
+    if (logo) {
+      if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 })
+      if (missingSetupVars(env).length) return new Response('Not found', { status: 404 })
+      // 只把成功的图片放进边缘缓存；失败（主控刚重启、限流）不缓存，隔一会儿再取一次，
+      // 仍失败就让浏览器下次打开页面时重试，不把一次偶发失败记住。
+      const target = originURL(env, `/api/public/provider-logo/${logo[1]}`).toString()
+      const load = () => fetch(new Request(target), {
+        cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': 31_536_000, '300-599': 0 } },
+      } as RequestInit)
+      let upstream = await load()
+      if (!upstream.ok) {
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        upstream = await load()
+      }
+      if (!upstream.ok) return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
+      return new Response(upstream.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      })
     }
 
     // 运行时主题配置只包含公开的显示参数，不返回任何 Worker Secret。
