@@ -15,6 +15,8 @@ import type { GeometryCollection, Topology } from 'topojson-specification'
 import world from 'world-atlas/countries-110m.json'
 import { Twemoji } from './Twemoji'
 import './region-globe.css'
+import { dashOffset, motionProgress, pointAlongTrack, type TrackPoint } from './globe-motion'
+import { useMotionTicker } from './use-motion-ticker'
 import {
   CITY_REGION_COORDINATES,
   GLOBE_CENTER,
@@ -36,6 +38,47 @@ const GLOBE_VIEWBOX_HEIGHT = 340
 const GLOBE_LABEL_HEIGHT = 26
 const GLOBE_LABEL_MARGIN = 8
 const INITIAL_ROTATION: [number, number] = [-108, -16]
+// 三条轨道虚线各自的周期（毫秒），第二条反向；连线流动的周期见 paintGlobeMotion
+const ORBIT_DURATIONS = [14000, 18000, 22000]
+
+// 连线光点的轨迹：沿连线等距取样一次存起来，之后每一步只做插值。
+// 原先每一步都对每条连线调 getTotalLength / getPointAtLength：前面刚写过 stroke-dashoffset，
+// 这两个调用会逼浏览器当场把样式和布局重算一遍，每秒二十次。连线的 d 只在地球转动或地区变化时才变。
+const CONNECTION_TRACK_SEGMENTS = 64
+const connectionTracks = new WeakMap<SVGPathElement, { d: string; points: TrackPoint[] }>()
+
+function connectionTrack(line: SVGPathElement): TrackPoint[] {
+  const d = line.getAttribute('d') || ''
+  const cached = connectionTracks.get(line)
+  if (cached?.d === d) return cached.points
+  const length = line.getTotalLength()
+  const points: TrackPoint[] = []
+  for (let step = 0; step <= CONNECTION_TRACK_SEGMENTS; step++) {
+    const point = line.getPointAtLength((length * step) / CONNECTION_TRACK_SEGMENTS)
+    points.push({ x: point.x, y: point.y })
+  }
+  connectionTracks.set(line, { d, points })
+  return points
+}
+
+/** 把轨道虚线、连线流动和连线上的光点推到 elapsedMs 这一刻（时长、方向与原 CSS / animateMotion 动画一致）。 */
+function paintGlobeMotion(svg: SVGSVGElement, elapsedMs: number) {
+  const links = [...svg.querySelectorAll<SVGGElement>('.premium-probe-node-connections > g')].map((link) => ({ line: link.querySelector('path'), dot: link.querySelector('circle') }))
+  // 先读后写：轨迹要量路径长度，放在改样式之前，不触发强制重排
+  const tracks = links.map(({ line, dot }) => (line && dot ? connectionTrack(line) : undefined))
+  svg.querySelectorAll<SVGElement>('.premium-probe-orbits ellipse').forEach((orbit, index) => {
+    orbit.style.strokeDashoffset = dashOffset(elapsedMs, ORBIT_DURATIONS[index] ?? ORBIT_DURATIONS[0], 120, index === 1).toFixed(2)
+  })
+  links.forEach(({ line, dot }, index) => {
+    if (!line) return
+    // 原样式：偶数个（nth-child(even)，下标为奇数）反向、周期 3.2s，其余 2.4s
+    const even = index % 2 === 1
+    line.style.strokeDashoffset = dashOffset(elapsedMs, even ? 3200 : 2400, 40, even).toFixed(2)
+    const point = pointAlongTrack(tracks[index] ?? [], motionProgress(elapsedMs, 3200 + index * 450))
+    if (!dot || !point) return
+    dot.setAttribute('transform', `translate(${point.x.toFixed(1)} ${point.y.toFixed(1)})`)
+  })
+}
 
 export function BlackGoldGlobe({ regions, themed = false }: { regions: PremiumProbeRegion[]; themed?: boolean }) {
   const rotation = useRef<[number, number]>(INITIAL_ROTATION)
@@ -48,6 +91,13 @@ export function BlackGoldGlobe({ regions, themed = false }: { regions: PremiumPr
   const inactiveCountriesPath = useRef<SVGPathElement>(null)
   const activeCountryPaths = useRef<Array<SVGPathElement | null>>([])
   const orbitLabels = useRef<OrbitLabelsHandle>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  // 轨道、连线、光点每 50ms 推一步；地球不在视口 / 页面在后台 / 系统开了「减少动态效果」/ 正在拖动时停掉
+  useMotionTicker(
+    svgRef,
+    (elapsed) => { if (svgRef.current) paintGlobeMotion(svgRef.current, elapsed) },
+    () => drag.current !== undefined
+  )
   const id = useId().replace(/:/g, '')
   const oceanID = `premium-probe-ocean-${id}`
   const glowID = `premium-probe-glow-${id}`
@@ -163,6 +213,7 @@ export function BlackGoldGlobe({ regions, themed = false }: { regions: PremiumPr
   return (
     <div className={`premium-probe-globe-stage${themed ? ' shared-region-globe' : ''}`}>
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${GLOBE_VIEWBOX_WIDTH} ${GLOBE_VIEWBOX_HEIGHT}`}
         role='img'
         aria-label='服务器地区分布 3D 地球'
@@ -384,14 +435,8 @@ function OrbitLabels({
             return (
               <g key={point.region.code}>
                 <path id={connectionID} d={connection} />
-                <circle r='2.6'>
-                  <animateMotion
-                    dur={`${3.2 + index * 0.45}s`}
-                    repeatCount='indefinite'
-                  >
-                    <mpath href={`#${connectionID}`} />
-                  </animateMotion>
-                </circle>
+                {/* 位置由 paintGlobeMotion 写 transform；还没定位或正在拖动时由样式隐藏 */}
+                <circle r='2.6' />
               </g>
             )
           })}
