@@ -187,6 +187,11 @@
   will-change: transform, opacity;
 }
 
+/* 动画播放期间（见 license-nameplate-motion.ts）：翻入、翻出两段之外铭牌完整显示 */
+.license-nameplate[data-motion] {
+  opacity: 1;
+}
+
 /* 静态模式（footer 关闭动画）: 同尺寸铭牌, 透明底, 文字静止, 无星尘/扫光 */
 .license-nameplate.is-static {
   opacity: 1;
@@ -196,7 +201,6 @@
   transform: none;
 }
 .license-nameplate.is-static .np-text {
-  clip-path: none;
   color: #cfc3a8;
   text-shadow: none;
 }
@@ -214,8 +218,12 @@
   letter-spacing: 0.02em;
   text-shadow: 0 1px #4b3009;
   white-space: nowrap;
-  clip-path: inset(0 100% 0 0);
-  will-change: clip-path;
+  overflow: hidden;
+}
+
+/* 文字显现靠外层平移裁切、内层反向平移，两层都只动 transform（见 license-nameplate-motion.ts） */
+.license-nameplate .np-text > span {
+  display: block;
 }
 
 .license-nameplate .np-stars {
@@ -3429,9 +3437,7 @@
 @media (prefers-reduced-motion: reduce) {
   .premium-probe-panel::after,
   .premium-probe-smart-summary::after,
-  .premium-probe-insight-card::after,
-  .premium-probe-orbits ellipse,
-  .premium-probe-node-connections path {
+  .premium-probe-insight-card::after {
     animation: none;
   }
 }
@@ -5159,6 +5165,17 @@
   color: var(--pp-gold-bright);
   background: rgba(216, 180, 106, 0.12);
 }
+/* 被墙的入口（主控 v0.6.4-beta.1 起下发 walled） */
+.premium-probe-forward .srv .swall {
+  flex: none;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  color: #e07a5f;
+  background: rgba(224, 122, 95, 0.14);
+}
+:root.theme-premium.platinum .premium-probe-forward .srv .swall { color: #b8473f; background: rgba(184, 71, 63, 0.1); }
 
 /* 选路段（上游 c6839d2）在白金配色下的可读性：上游灰字与亮金按深色底写，米白底上改用白金体系的深灰与暗金 */
 :root.theme-premium.platinum .premium-probe-forward .rroutes .rr-h { color: #75674e; }
